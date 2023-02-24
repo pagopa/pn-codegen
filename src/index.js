@@ -195,6 +195,18 @@ function enrichPaths(paths){
                 timeoutInMillis: 29000,
                 type: "http_proxy"
             }
+
+            if(!paths[path][method].parameters){
+                paths[path][method].parameters = [];
+            }
+            paths[path][method].parameters.push({
+                name: "proxy",
+                in: "path",
+                required: true,
+                schema: {
+                    type: "string"
+                }
+            })
         });
     });
 
@@ -222,7 +234,7 @@ async function joinYamlFiles(files, outputFile){
             title: '${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}',
             version: new Date().toISOString()
         },
-        /*servers: [
+        servers: [
             {
                 url: "https://${stageVariables.DnsName}/{basePath}",
                 variables: {
@@ -234,15 +246,12 @@ async function joinYamlFiles(files, outputFile){
                     disableExecuteApiEndpoint: true
                 }
             }
-        ],*/
-        basePath: "/${stageVariables.ServiceApiPath}",
-        schemes: [
-            'https'
         ],
         paths: {},
         components: {
             parameters: {},
             schemas: {},
+            responses: {},
             securitySchemes: getSecuritySchemeByIntendedUsage()
         },
         tags: [],
@@ -267,8 +276,9 @@ async function joinYamlFiles(files, outputFile){
         finalDoc.tags = _.uniqBy(_.concat(finalDoc.tags, doc.tags), 'name')
         deepObjectMerge(finalDoc.paths, doc.paths)
         Object.assign(finalDoc.components.parameters, doc.components.parameters)
-        Object.assign(finalDoc.components.securitySchemes, doc.components.securitySchemes)
+        //Object.assign(finalDoc.components.securitySchemes, doc.components.securitySchemes)
         Object.assign(finalDoc.components.schemas, doc.components.schemas)
+        Object.assign(finalDoc.components.responses, doc.components.responses || {})
     }
 
     enrichPaths(finalDoc.paths)
