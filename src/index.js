@@ -25,12 +25,12 @@ function removePathPrefix(paths, servicePath){
 }
 
 async function mergeYaml(inputFile, outputFile){
-    const { stdout, stderr } = await exec(`redocly bundle ${stageVariables.inputFile} -o ${stageVariables.outputFile}`);
+    const { stdout, stderr } = await exec(`redocly bundle ${inputFile} -o ${outputFile}`);
 
     if (stderr) {
-        console.error(`error: ${stageVariables.stderr}`);
+        console.error(`error: ${stderr}`);
     }
-    console.log(`Number of files ${stageVariables.stdout}`);
+    console.log(`Number of files ${stdout}`);
 }
 
 function deepObjectMerge(finalPaths, docPaths){
@@ -48,27 +48,111 @@ function deepObjectMerge(finalPaths, docPaths){
 }
 
 function getSecuritySchemeByIntendedUsage(){
-    return {
-        'pn-auth-fleet_IoAuthorizer': {
-            type: "apiKey",
-            name: "Unused",
-            in: "header",
-            'x-amazon-apigateway-authtype': "custom",
-            'x-amazon-apigateway-authorizer': {
-                authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
-                authorizerResultTtlInSeconds: 300,
-                identitySource: "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
-                type: "request"
+    if(intendedUsage=='B2B'){
+        return {
+            'pn-auth-fleet_ApiKeyAuthorizerV2': {
+                type: "apiKey",
+                name: "x-api-key",
+                in: "header",
+                'x-amazon-apigateway-authtype': "custom",
+                'x-amazon-apigateway-authorizer': {
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerResultTtlInSeconds: 300,
+                    identitySource: "method.request.header.x-api-key",
+                    type: "request"
+                }
             }
         }
+    } else if(intendedUsage=='IO'){
+        return {
+            'pn-auth-fleet_IoAuthorizer': {
+                type: "apiKey",
+                name: "Unused",
+                in: "header",
+                'x-amazon-apigateway-authtype': "custom",
+                'x-amazon-apigateway-authorizer': {
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerResultTtlInSeconds: 300,
+                    identitySource: "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
+                    type: "request"
+                }
+            }
+        }
+    } else if(intendedUsage=='BACKOFFICE'){
+        return {
+            'pn-auth-fleet_backofficeAuthorizer': {
+                type: "apiKey",
+                name: "Authorization",
+                in: "header",
+                'x-amazon-apigateway-authtype': "custom",
+                'x-amazon-apigateway-authorizer': {
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-backofficeAuthorizerLambda/invocations',
+                    authorizerResultTtlInSeconds: 300,
+                    type: "token"
+                }
+            }
+        }
+    } else if(intendedUsage=='WEB'){
+        return {
+            'pn-auth-fleet_jwtAuthorizer': {
+                type: "apiKey",
+                name: "Authorization",
+                in: "header",
+                'x-amazon-apigateway-authtype': "custom",
+                'x-amazon-apigateway-authorizer': {
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-jwtAuthorizerLambda/invocations',
+                    authorizerResultTtlInSeconds: 300,
+                    type: "token"                    
+                }
+            }
+        }
+    } else if(intendedUsage=='PNPG') {
+        return {}
+    } else {
+        return {}
     }
 }
 
 function getMethodSecurityItemsByIntendedUsage(){
-    return [
-        { 'pn-auth-fleet_IoAuthorizer': [] },
-        { 'api_key': [] }
-    ]
+
+    if(intendedUsage=='B2B'){
+        return {
+            'pn-auth-fleet_ApiKeyAuthorizerV2': {
+                type: "apiKey",
+                name: "x-api-key",
+                in: "header",
+                'x-amazon-apigateway-authtype': "custom",
+                'x-amazon-apigateway-authorizer': {
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerResultTtlInSeconds: 300,
+                    identitySource: "method.request.header.x-api-key",
+                    type: "request"
+                }
+            }
+        }
+    } else if(intendedUsage=='IO'){
+        return [
+            { 'pn-auth-fleet_IoAuthorizer': [] },
+            { 'api_key': [] }
+        ]    
+    } else if(intendedUsage=='BACKOFFICE'){
+        return [
+            { 'pn-auth-fleet_backofficeAuthorizer': [] }
+        ]
+    } else if(intendedUsage=='WEB'){
+        return [
+            { 'pn-auth-fleet_jwtAuthorizer': [] }
+        ] 
+    } else if(intendedUsage=='PNPG') {
+        return [
+            { 'pn-auth-fleet_jwtAuthorizer': [] }
+        ] 
+    } else {
+        return [
+            { 'pn-auth-fleet_jwtAuthorizer': [] }
+        ] 
+    }
+
 }
 
 function getRequestParametersByIntendedUsage(){
@@ -78,10 +162,10 @@ function getRequestParametersByIntendedUsage(){
         'integration.request.header.x-pagopa-pn-cx-role': "context.authorizer.cx_role",
         'integration.request.header.x-pagopa-pn-uid': "context.authorizer.uid",
         'integration.request.header.x-pagopa-pn-jti': "context.authorizer.cx_jti",
-        'integration.request.header.x-pagopa-pn-src-ch': "'IO'",
+        'integration.request.header.x-pagopa-pn-src-ch': "'"+intendedUsage+"'",
         'integration.request.header.x-pagopa-pn-cx-type': "context.authorizer.cx_type",
         'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups"
-    }
+    } 
 }
 
 function enrichPaths(paths){
@@ -138,7 +222,7 @@ async function joinYamlFiles(files, outputFile){
             title: '${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}',
             version: new Date().toISOString()
         },
-        servers: [
+        /*servers: [
             {
                 url: "https://${stageVariables.DnsName}/{basePath}",
                 variables: {
@@ -150,7 +234,7 @@ async function joinYamlFiles(files, outputFile){
                     disableExecuteApiEndpoint: true
                 }
             }
-        ],
+        ],*/
         basePath: "/${stageVariables.ServiceApiPath}",
         schemes: [
             'https'
@@ -187,6 +271,7 @@ async function joinYamlFiles(files, outputFile){
         Object.assign(finalDoc.components.schemas, doc.components.schemas)
     }
 
+    enrichPaths(finalDoc.paths)
     fs.writeFileSync(outputFile, yaml.dump(finalDoc))
 }
 
@@ -216,7 +301,7 @@ async function doWork(){
     
     }
 
-    const outputFilePath = openapiFolder+`/full-${stageVariables.servicePath}-${stageVariables.intendedUsage}-openapi.yaml`
+    const outputFilePath = openapiFolder+`/full-${servicePath}-${intendedUsage}-openapi.yaml`
     await joinYamlFiles(mergedOpenApiFiles, outputFilePath)
 }
 
