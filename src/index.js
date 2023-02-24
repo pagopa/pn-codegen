@@ -301,7 +301,7 @@ async function doWork(){
     
     }
 
-    const outputFilePath = openapiFolder+`/full-${servicePath}-${intendedUsage}-openapi.yaml`
+    const outputFilePath = openapiFolder+`/api-${servicePath}-${intendedUsage}-aws.yaml`
     await joinYamlFiles(mergedOpenApiFiles, outputFilePath)
 }
 
