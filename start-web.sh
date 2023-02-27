@@ -1,2 +1,2 @@
 #/bin/sh
-docker run --rm -it -e OPENAPI_FILES=api-internal-b2b-pa-v1.yaml,api-internal-web-pa-v1.yaml,api-internal-web-recipient-v1.yaml -e SERVICE_PATH=delivery -e INTENDED_USAGE=WEB -v openapi:/usr/src/app/openapi --name=pn-openapi-processor pagopa/pn-openapi-processor 
+docker run --rm -it -e CODEGEN_CONFIG_FILE=codegen.json -v openapi:/usr/src/app/openapi --name=pn-openapi-processor pagopa/pn-openapi-processor 
