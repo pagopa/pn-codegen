@@ -4,8 +4,9 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const _ = require('lodash')
 
-const openapiFolder = process.argv[2]
-const configFilePath = process.argv[3]
+const openapiFolder = 'microsvc/docs/openapi'
+const configFilePath = 'microsvc/codegen/config.json'
+const tmpFolder = 'microsvc/docs/openapi' // we can't use a different folder to generate tmp files unless we copy all the #refs
 
 function filterApiDocByPath(paths, servicePath){
     const regexp = new RegExp('^/'+servicePath+'/');
@@ -286,11 +287,12 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
 
     delete finalDoc.components.schemas['schemas-ProblemError']
     enrichPaths(finalDoc.paths, intendedUsage)
-    fs.writeFileSync(outputFile, yaml.dump(finalDoc))
+    const yamlString = yaml.dump(finalDoc).replace('schemas-ProblemError', 'ProblemError')
+    fs.writeFileSync(outputFile, yamlString)
 }
 
 async function internalToExternal(inputFile, outputFile){
-    const command = `cat ${openapiFolder}/${inputFile} | sed -e '/.*<details no-external>.*/,/<\\/details>/ d' | grep -v "# NO EXTERNAL" | sed -e '/# ONLY EXTERNAL/s/^#//' > ${openapiFolder}/${outputFile}`
+    const command = `cat ${openapiFolder}/${inputFile} | sed -e '/.*<details no-external>.*/,/<\\/details>/ d' | grep -v "# NO EXTERNAL" | grep -v "# NOT YET IMPLEMENTED" | sed -e '/# ONLY EXTERNAL/s/^#//' > ${openapiFolder}/${outputFile}`
     
     console.log('internal to external', command)
     const { stdout, stderr } = await exec(command);
@@ -301,7 +303,7 @@ async function internalToExternal(inputFile, outputFile){
     console.log(`${stdout}`);
 }
 
-async function generateBundle(inputFile, outputFile){
+async function makeBundle(inputFile, outputFile){
 
     const redoclyCommand = `redocly bundle ${openapiFolder}/${inputFile} --output ${openapiFolder}/${outputFile}`
     const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${openapiFolder}/${outputFile}`
@@ -334,10 +336,10 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles){
             doc.paths = filterApiDocByPath(doc.paths, servicePath)
             doc.paths = removePathPrefix(doc.paths, servicePath)
     
-            fs.writeFileSync(openapiFolder+'/clean-'+openapiFiles[i], yaml.dump(doc))
+            fs.writeFileSync(tmpFolder+'/clean-'+openapiFiles[i], yaml.dump(doc))
     
-            await mergeYaml(openapiFolder+'/clean-'+openapiFiles[i], openapiFolder+'/merged-'+openapiFiles[i])
-            mergedOpenApiFiles.push(openapiFolder+'/merged-'+openapiFiles[i])
+            await mergeYaml(tmpFolder+'/clean-'+openapiFiles[i], tmpFolder+'/merged-'+openapiFiles[i])
+            mergedOpenApiFiles.push(tmpFolder+'/merged-'+openapiFiles[i])
         } catch (e) {
             console.error('File '+openapiFilePath+' yaml parsing error: '+e.message)
             console.debug(e);
@@ -346,26 +348,30 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles){
     
     }
 
-    const outputFilePath = openapiFolder+`/api-${servicePath}-${intendedUsage}-aws.yaml`
+    fs.mkdirSync(openapiFolder+'/aws', { recursive: true })
+    const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsage}-aws.yaml`
     await joinYamlFiles(mergedOpenApiFiles, outputFilePath, intendedUsage)
 }
 
 async function doWork(){
-    const configFile = openapiFolder+'/'+configFilePath
-    const configContent = fs.readFileSync(configFile)
-    const config = JSON.parse(configContent)
+    fs.mkdirSync(tmpFolder, { recursive: true}) // create target folder if it doesn'\t exist
+
+    const configContent = fs.readFileSync(configFilePath)
+    const globalConfig = JSON.parse(configContent)
+
+    const config = globalConfig.openapi // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         for(let j=0; j<openapiFiles.length; j++){
             const outputFile = openapiFiles[j].replace('internal', 'external')
             await internalToExternal(openapiFiles[j], outputFile)
             openExternalFiles.push(outputFile)
-            if(intendedUsage=='B2B'){
+            if(generateBundle){
                 const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
-                await generateBundle(outputFile, bundleFile)
+                await makeBundle(outputFile, bundleFile)
             }
         }
         await doSingleWork(intendedUsage, servicePath, openExternalFiles)
