@@ -3,6 +3,7 @@ const yaml = require('js-yaml')
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const _ = require('lodash')
+const crypto = require('crypto');
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
@@ -48,12 +49,12 @@ function deepObjectMerge(finalPaths, docPaths){
 function getSecuritySchemeByIntendedUsage(intendedUsage){
     if(intendedUsage=='B2B'){
         return {
-            'api_key': {
+            'api_key_openapi': {
                 type: "apiKey",
                 name: "x-api-key",
                 in: "header"
             },
-            'pn-auth-fleet_ApiKeyAuthorizerV2': {
+            'pn-auth-fleet_ApiKeyAuthorizerV2_openapi': {
                 type: "apiKey",
                 name: "x-api-key",
                 in: "header",
@@ -68,12 +69,12 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
         }
     } else if(intendedUsage=='IO'){
         return {
-            'api_key': {
+            'api_key_openapi': {
                 type: "apiKey",
                 name: "x-api-key",
                 in: "header"
             },
-            'pn-auth-fleet_IoAuthorizer': {
+            'pn-auth-fleet_IoAuthorizer_openapi': {
                 type: "apiKey",
                 name: "Unused",
                 in: "header",
@@ -88,7 +89,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
         }
     } else if(intendedUsage=='BACKOFFICE'){
         return {
-            'pn-auth-fleet_backofficeAuthorizer': {
+            'pn-auth-fleet_backofficeAuthorizer_openapi': {
                 type: "apiKey",
                 name: "Authorization",
                 in: "header",
@@ -102,7 +103,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
         }
     } else if(intendedUsage=='WEB'){
         return {
-            'pn-auth-fleet_jwtAuthorizer': {
+            'pn-auth-fleet_jwtAuthorizer_openapi': {
                 type: "apiKey",
                 name: "Authorization",
                 in: "header",
@@ -116,7 +117,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
         }
     } else if(intendedUsage=='PNPG') {
         return {
-            'api_key': {
+            'api_key_openapi': {
                 type: "apiKey",
                 name: "x-api-key",
                 in: "header"
@@ -131,25 +132,25 @@ function getMethodSecurityItemsByIntendedUsage(intendedUsage){
 
     if(intendedUsage=='B2B'){
         return [
-            { 'pn-auth-fleet_ApiKeyAuthorizerV2': [] },
-            { 'api_key': [] }
+            { 'pn-auth-fleet_ApiKeyAuthorizerV2_openapi': [] },
+            { 'api_key_openapi': [] }
         ]
     } else if(intendedUsage=='IO'){
         return [
-            { 'pn-auth-fleet_IoAuthorizer': [] },
-            { 'api_key': [] }
+            { 'pn-auth-fleet_IoAuthorizer_openapi': [] },
+            { 'api_key_openapi': [] }
         ]    
     } else if(intendedUsage=='BACKOFFICE'){
         return [
-            { 'pn-auth-fleet_backofficeAuthorizer': [] }
+            { 'pn-auth-fleet_backofficeAuthorizer_openapi': [] }
         ]
     } else if(intendedUsage=='WEB'){
         return [
-            { 'pn-auth-fleet_jwtAuthorizer': [] }
+            { 'pn-auth-fleet_jwtAuthorizer_openapi': [] }
         ] 
     } else if(intendedUsage=='PNPG') {
         return [
-            { 'api_key': [] }
+            { 'api_key_openapi': [] }
         ] 
     } else {
         return [
@@ -244,7 +245,6 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
         openapi: '3.0.1',
         info: {
             title: '${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}',
-            version: new Date().toISOString()
         },
         servers: [
             {
@@ -295,8 +295,13 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
 
     delete finalDoc.components.schemas['schemas-ProblemError']
     enrichPaths(finalDoc.paths, intendedUsage)
-    const yamlString = yaml.dump(finalDoc).replace('schemas-ProblemError', 'ProblemError')
-    fs.writeFileSync(outputFile, yamlString)
+    const yamlString = yaml.dump(finalDoc)
+
+    const hash = crypto.createHash('sha256').update(yamlString).digest('base64');
+    finalDoc.info.version = hash // add sha256 as version
+
+    const yamlStringWithVersion = yaml.dump(finalDoc).replace('schemas-ProblemError', 'ProblemError')
+    fs.writeFileSync(outputFile, yamlStringWithVersion)
 }
 
 async function internalToExternal(inputFile, outputFile){
