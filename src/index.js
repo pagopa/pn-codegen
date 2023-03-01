@@ -59,7 +59,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
                 in: "header",
                 'x-amazon-apigateway-authtype': "custom",
                 'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations',
                     authorizerResultTtlInSeconds: 300,
                     identitySource: "method.request.header.x-api-key",
                     type: "request"
@@ -79,7 +79,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
                 in: "header",
                 'x-amazon-apigateway-authtype': "custom",
                 'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations',
                     authorizerResultTtlInSeconds: 300,
                     identitySource: "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
                     type: "request"
@@ -94,7 +94,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
                 in: "header",
                 'x-amazon-apigateway-authtype': "custom",
                 'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-backofficeAuthorizerLambda/invocations',
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-backofficeAuthorizerLambda/invocations',
                     authorizerResultTtlInSeconds: 300,
                     type: "token"
                 }
@@ -108,7 +108,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
                 in: "header",
                 'x-amazon-apigateway-authtype': "custom",
                 'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${stageVariables.ProjectName}-jwtAuthorizerLambda/invocations',
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-jwtAuthorizerLambda/invocations',
                     authorizerResultTtlInSeconds: 300,
                     type: "token"                    
                 }
@@ -159,17 +159,30 @@ function getMethodSecurityItemsByIntendedUsage(intendedUsage){
 
 }
 
-function getRequestParametersByIntendedUsage(intendedUsage){
-    return {
-        'integration.request.header.x-pagopa-pn-cx-id': "context.authorizer.cx_id",
-        'integration.request.path.proxy': "method.request.path.proxy",
-        'integration.request.header.x-pagopa-pn-cx-role': "context.authorizer.cx_role",
-        'integration.request.header.x-pagopa-pn-uid': "context.authorizer.uid",
-        'integration.request.header.x-pagopa-pn-jti': "context.authorizer.cx_jti",
-        'integration.request.header.x-pagopa-pn-src-ch': "'"+intendedUsage+"'",
-        'integration.request.header.x-pagopa-pn-cx-type': "context.authorizer.cx_type",
-        'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups"
-    } 
+function getPathParams(path){
+    return [...path.matchAll(/{(.*)?}/g)];
+}
+
+function getRequestParametersByIntendedUsage(intendedUsage, path, options = false){
+    const parameters = {}
+
+    if(!options){
+        Object.assign(parameters, {
+            'integration.request.header.x-pagopa-pn-cx-id': "context.authorizer.cx_id",
+            'integration.request.header.x-pagopa-pn-cx-role': "context.authorizer.cx_role",
+            'integration.request.header.x-pagopa-pn-uid': "context.authorizer.uid",
+            'integration.request.header.x-pagopa-pn-jti': "context.authorizer.cx_jti",
+            'integration.request.header.x-pagopa-pn-src-ch': "'"+intendedUsage+"'",
+            'integration.request.header.x-pagopa-pn-cx-type': "context.authorizer.cx_type",
+            'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups"
+        });
+    }
+
+    const pathParams = getPathParams(path)
+    for(let i=0; i<pathParams.length; i++){
+        parameters['integration.request.path.'+pathParams[i][1]] = "method.request.path."+pathParams[i][1]     
+    }
+    return parameters;
 }
 
 function enrichPaths(paths, intendedUsage){
@@ -181,6 +194,7 @@ function enrichPaths(paths, intendedUsage){
                     uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}"+path,
                     connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                     httpMethod: "ANY",
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true),
                     passthroughBehavior: "when_no_match",
                     connectionType: "VPC_LINK",
                     timeoutInMillis: 29000,
@@ -193,7 +207,7 @@ function enrichPaths(paths, intendedUsage){
                 uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}"+path,
                 connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                 httpMethod: "ANY",
-                requestParameters: getRequestParametersByIntendedUsage(intendedUsage),
+                requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
                 passthroughBehavior: "when_no_match",
                 connectionType: "VPC_LINK",
                 timeoutInMillis: 29000,
@@ -203,14 +217,6 @@ function enrichPaths(paths, intendedUsage){
             if(!paths[path][method].parameters){
                 paths[path][method].parameters = [];
             }
-            paths[path][method].parameters.push({
-                name: "proxy",
-                in: "path",
-                required: true,
-                schema: {
-                    type: "string"
-                }
-            })
         });
     });
 
