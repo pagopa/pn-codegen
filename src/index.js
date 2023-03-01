@@ -160,7 +160,9 @@ function getMethodSecurityItemsByIntendedUsage(intendedUsage){
 }
 
 function getPathParams(path){
-    return [...path.matchAll(/{(.*)?}/g)];
+    return [...path.matchAll(/({.*?})/g)].map((p) => {
+        return p[1].replace('{', '').replace('}', '')
+    })
 }
 
 function getRequestParametersByIntendedUsage(intendedUsage, path, options = false){
@@ -180,7 +182,7 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
 
     const pathParams = getPathParams(path)
     for(let i=0; i<pathParams.length; i++){
-        parameters['integration.request.path.'+pathParams[i][1]] = "method.request.path."+pathParams[i][1]     
+        parameters['integration.request.path.'+pathParams[i]] = "method.request.path."+pathParams[i]    
     }
     return parameters;
 }
