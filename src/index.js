@@ -79,7 +79,7 @@ function getSecuritySchemeByIntendedUsage(intendedUsage){
                 in: "header",
                 'x-amazon-apigateway-authtype': "custom",
                 'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations',
+                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ioAuthorizerLambda/invocations',
                     authorizerResultTtlInSeconds: 300,
                     identitySource: "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
                     type: "request"
