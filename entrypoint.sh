@@ -6,6 +6,7 @@ if [[ ! -f "${CONFIG_FILE_PATH}" ]]; then
     exit 1
 fi
 
-
+rm -rf /tmp/openapi
+cp -p -r microsvc/docs/openapi /tmp/openapi
 echo $CONFIG_FILE_PATH
 node src/index.js

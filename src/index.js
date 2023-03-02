@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
-const tmpFolder = 'microsvc/docs/openapi' // we can't use a different folder to generate tmp files unless we copy all the #refs
+const tmpFolder = '/tmp/openapi'
 
 function filterApiDocByPath(paths, servicePath){
     const regexp = new RegExp('^/'+servicePath+'/');
