@@ -223,7 +223,7 @@ function enrichPaths(paths, intendedUsage){
         });
     });
 
-    paths['/v3/api-docs'] = {
+/*    paths['/v3/api-docs'] = {
         'x-amazon-apigateway-any-method': {
             operationId: "Proxy to pn-delivery public api-docs",
             'x-amazon-apigateway-integration': {
@@ -236,7 +236,7 @@ function enrichPaths(paths, intendedUsage){
                 type: "http_proxy"
             } 
         }
-    }
+    }*/
 
 }
 
