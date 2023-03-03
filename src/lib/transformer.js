@@ -41,8 +41,32 @@ async function mergeYaml(inputFile, outputFile){
     }
 }
 
+async function removeIntFormat(inputFile){
+    const command = `sed -i -e '/format: int32/ d' -e '/format: int64/ d' ${inputFile}`
+
+    const { stdout, stderr } = await exec(command);
+
+    if (stderr) {
+        console.error(`redocly error: ${stderr}`);
+    }
+
+}
+
+async function updateIntegerType(inputFile){
+    const command = `sed -i -e 's/type: *integer/type: number/' ${inputFile}`
+
+    const { stdout, stderr } = await exec(command);
+
+    if (stderr) {
+        console.error(`redocly error: ${stderr}`);
+    }
+
+}
+
 module.exports = {
     internalToExternal,
     makeBundle,
-    mergeYaml
+    mergeYaml,
+    removeIntFormat,
+    updateIntegerType
 }

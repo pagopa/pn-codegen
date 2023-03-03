@@ -1,7 +1,7 @@
 const fs = require('fs')
 const yaml = require('js-yaml')
 
-const { internalToExternal, makeBundle, mergeYaml } = require('./lib/transformer')
+const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
 
@@ -56,6 +56,8 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
     fs.mkdirSync(openapiFolder+'/aws', { recursive: true })
     const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsage}-aws.yaml`
     await buildAWSOpenApiFile(mergedOpenApiFiles, outputFilePath, intendedUsage, authorizerConfig)
+    await removeIntFormat(outputFilePath)
+    await updateIntegerType(outputFilePath)
 }
 
 async function main(){
