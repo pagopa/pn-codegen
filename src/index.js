@@ -3,6 +3,7 @@ const yaml = require('js-yaml')
 
 const { internalToExternal, makeBundle, mergeYaml } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
+const { checkBundles }  = require('./lib/bundleChecker')
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
@@ -84,6 +85,8 @@ async function main(){
             await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
         }
     }
+
+    checkBundles(openapiFolder, globalConfig.openapiBundlePresenceCheck)
 }
 
 main().then(function(){
