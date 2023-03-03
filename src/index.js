@@ -1,9 +1,10 @@
 const fs = require('fs')
 const yaml = require('js-yaml')
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const _ = require('lodash')
 const crypto = require('crypto');
+
+const { internalToExternal, makeBundle, mergeYaml } = require('./lib/transformer')
+const { getSecuritySchemeByIntendedUsage, getMethodSecurityItemsByIntendedUsage } = require('./lib/authorizer')
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
@@ -24,14 +25,6 @@ function removePathPrefix(paths, servicePath){
     );
 }
 
-async function mergeYaml(inputFile, outputFile){
-    const { stdout, stderr } = await exec(`redocly bundle ${inputFile} -o ${outputFile}`);
-
-    if (stderr) {
-        console.error(`error: ${stderr}`);
-    }
-}
-
 function deepObjectMerge(finalPaths, docPaths){
     _.forOwn(docPaths, function(methods, path) {
         if(!finalPaths[path]){
@@ -44,120 +37,6 @@ function deepObjectMerge(finalPaths, docPaths){
             });
         }
     });
-}
-
-function getSecuritySchemeByIntendedUsage(intendedUsage){
-    if(intendedUsage=='B2B'){
-        return {
-            'api_key_openapi': {
-                type: "apiKey",
-                name: "x-api-key",
-                in: "header"
-            },
-            'pn-auth-fleet_ApiKeyAuthorizerV2_openapi': {
-                type: "apiKey",
-                name: "x-api-key",
-                in: "header",
-                'x-amazon-apigateway-authtype': "custom",
-                'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations',
-                    authorizerResultTtlInSeconds: 300,
-                    identitySource: "method.request.header.x-api-key",
-                    type: "request"
-                }
-            }
-        }
-    } else if(intendedUsage=='IO'){
-        return {
-            'api_key_openapi': {
-                type: "apiKey",
-                name: "x-api-key",
-                in: "header"
-            },
-            'pn-auth-fleet_IoAuthorizer_openapi': {
-                type: "apiKey",
-                name: "Unused",
-                in: "header",
-                'x-amazon-apigateway-authtype': "custom",
-                'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ioAuthorizerLambda/invocations',
-                    authorizerResultTtlInSeconds: 300,
-                    identitySource: "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
-                    type: "request"
-                }
-            }
-        }
-    } else if(intendedUsage=='BACKOFFICE'){
-        return {
-            'pn-auth-fleet_backofficeAuthorizer_openapi': {
-                type: "apiKey",
-                name: "Authorization",
-                in: "header",
-                'x-amazon-apigateway-authtype': "custom",
-                'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-backofficeAuthorizerLambda/invocations',
-                    authorizerResultTtlInSeconds: 300,
-                    type: "token"
-                }
-            }
-        }
-    } else if(intendedUsage=='WEB'){
-        return {
-            'pn-auth-fleet_jwtAuthorizer_openapi': {
-                type: "apiKey",
-                name: "Authorization",
-                in: "header",
-                'x-amazon-apigateway-authtype': "custom",
-                'x-amazon-apigateway-authorizer': {
-                    authorizerUri: 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-jwtAuthorizerLambda/invocations',
-                    authorizerResultTtlInSeconds: 300,
-                    type: "token"                    
-                }
-            }
-        }
-    } else if(intendedUsage=='PNPG') {
-        return {
-            'api_key_openapi': {
-                type: "apiKey",
-                name: "x-api-key",
-                in: "header"
-            }
-        }
-    } else {
-        return {}
-    }
-}
-
-function getMethodSecurityItemsByIntendedUsage(intendedUsage){
-
-    if(intendedUsage=='B2B'){
-        return [
-            { 'pn-auth-fleet_ApiKeyAuthorizerV2_openapi': [] },
-            { 'api_key_openapi': [] }
-        ]
-    } else if(intendedUsage=='IO'){
-        return [
-            { 'pn-auth-fleet_IoAuthorizer_openapi': [] },
-            { 'api_key_openapi': [] }
-        ]    
-    } else if(intendedUsage=='BACKOFFICE'){
-        return [
-            { 'pn-auth-fleet_backofficeAuthorizer_openapi': [] }
-        ]
-    } else if(intendedUsage=='WEB'){
-        return [
-            { 'pn-auth-fleet_jwtAuthorizer_openapi': [] }
-        ] 
-    } else if(intendedUsage=='PNPG') {
-        return [
-            { 'api_key_openapi': [] }
-        ] 
-    } else {
-        return [
-            
-        ] 
-    }
-
 }
 
 function getPathParams(path){
@@ -184,11 +63,14 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
     const pathParams = getPathParams(path)
     for(let i=0; i<pathParams.length; i++){
         parameters['integration.request.path.'+pathParams[i]] = "method.request.path."+pathParams[i]    
-    }
+    } 
+
+    // nella UI di AWS, l'opzione "Use Proxy Integration" riporta "Requests will be proxied to your VPC Link's endpoint." il che implica il passaggio di tutti i parametri
+    // della richiesta originali, inclusi header e query string
     return parameters;
 }
 
-function enrichPaths(paths, intendedUsage){
+function enrichPaths(paths, intendedUsage, authorizerConfig){
     _.forOwn(paths, function(methods, path) {
         _.forOwn(methods, function(methodDetail, method) {
             paths[path].options = {
@@ -205,7 +87,7 @@ function enrichPaths(paths, intendedUsage){
                 }
             }
 
-            paths[path][method].security = getMethodSecurityItemsByIntendedUsage(intendedUsage)
+            paths[path][method].security = getMethodSecurityItemsByIntendedUsage(intendedUsage, authorizerConfig)
             paths[path][method]['x-amazon-apigateway-integration'] = {
                 uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}"+path,
                 connectionId: "${stageVariables.NetworkLoadBalancerLink}",
@@ -222,25 +104,9 @@ function enrichPaths(paths, intendedUsage){
             }
         });
     });
-
-/*    paths['/v3/api-docs'] = {
-        'x-amazon-apigateway-any-method': {
-            operationId: "Proxy to pn-delivery public api-docs",
-            'x-amazon-apigateway-integration': {
-                uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}/v3/api-docs",
-                connectionId: "${stageVariables.NetworkLoadBalancerLink}",
-                httpMethod: "ANY",
-                passthroughBehavior: "when_no_match",
-                connectionType: "VPC_LINK",
-                timeoutInMillis: 29000,
-                type: "http_proxy"
-            } 
-        }
-    }*/
-
 }
 
-async function joinYamlFiles(files, outputFile, intendedUsage){
+async function joinYamlFiles(files, outputFile, intendedUsage, authorizerConfig){
     let finalDoc = {
         openapi: '3.0.1',
         info: {
@@ -264,7 +130,7 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
             parameters: {},
             schemas: {},
             responses: {},
-            securitySchemes: getSecuritySchemeByIntendedUsage(intendedUsage)
+            securitySchemes: getSecuritySchemeByIntendedUsage(intendedUsage, authorizerConfig)
         },
         tags: [],
         'x-amazon-apigateway-gateway-responses':{
@@ -278,7 +144,18 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 }
             }
-        }
+        },
+        "x-amazon-apigateway-request-validators" : {
+            basic : {
+              validateRequestBody: true,
+              validateRequestParameters: true
+            },
+            "params-only" : {
+              validateRequestBody: false,
+              validateRequestParameters: true
+            }
+        },
+        "x-amazon-apigateway-request-validator" : "basic" // validate parameters and body for all requests
     }
 
     for(let i=0; i<files.length; i++){
@@ -294,50 +171,23 @@ async function joinYamlFiles(files, outputFile, intendedUsage){
     }
 
     delete finalDoc.components.schemas['schemas-ProblemError']
-    enrichPaths(finalDoc.paths, intendedUsage)
-    const yamlString = yaml.dump(finalDoc)
+    enrichPaths(finalDoc.paths, intendedUsage, authorizerConfig)
+    const yamlString = yaml.dump(finalDoc, { noRefs: true })
 
     const hash = crypto.createHash('sha256').update(yamlString).digest('base64');
     finalDoc.info.version = hash // add sha256 as version
 
-    const yamlStringWithVersion = yaml.dump(finalDoc).replace('schemas-ProblemError', 'ProblemError')
+    // la sostituzione è richiesta in quanto AWS non supporta risorse con il carattere "-"; inoltre, ProblemError e schemas-ProblemError sono duplicati
+    // ed andrebbe indagato il problema a livello di definizione di OpenAPI
+    const yamlStringWithVersion = yaml.dump(finalDoc,  { noRefs: true }).replace('schemas-ProblemError', 'ProblemError') 
     fs.writeFileSync(outputFile, yamlStringWithVersion)
 }
 
-async function internalToExternal(inputFile, outputFile){
-    const command = `cat ${openapiFolder}/${inputFile} | sed -e '/.*<details no-external>.*/,/<\\/details>/ d' | grep -v "# NO EXTERNAL" | grep -v "# NOT YET IMPLEMENTED" | sed -e '/# ONLY EXTERNAL/s/^#//' > ${openapiFolder}/${outputFile}`
-    
-    console.log('internal to external', command)
-    const { stdout, stderr } = await exec(command);
-
-    if (stderr) {
-        console.error(`internal to external error: ${stderr}`);
+async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
+    if(['B2B', 'WEB', 'IO'].indexOf(intendedUsage)<0){
+        console.error('Intended usage not supported: '+intendedUsage)
+        return
     }
-    console.log(`${stdout}`);
-}
-
-async function makeBundle(inputFile, outputFile){
-
-    const redoclyCommand = `redocly bundle ${openapiFolder}/${inputFile} --output ${openapiFolder}/${outputFile}`
-    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${openapiFolder}/${outputFile}`
-
-    console.log(redoclyCommand)
-    const { stdout, stderr } = await exec(redoclyCommand);
-
-    if (stderr) {
-        console.error(`redocly error: ${stderr}`);
-    }
-    
-    console.log(lintCommand)
-    const { lintStdout, lintStderr } = await exec(lintCommand);
-
-    if (lintStderr) {
-        console.error(`lint error: ${lintStderr}`);
-    }
-    
-
-}
-async function doSingleWork(intendedUsage, servicePath, openapiFiles){
     const mergedOpenApiFiles = []
     for(let i=0; i<openapiFiles.length; i++){
         const openapiFilePath = openapiFolder+'/'+openapiFiles[i]
@@ -363,15 +213,17 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles){
 
     fs.mkdirSync(openapiFolder+'/aws', { recursive: true })
     const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsage}-aws.yaml`
-    await joinYamlFiles(mergedOpenApiFiles, outputFilePath, intendedUsage)
+    await joinYamlFiles(mergedOpenApiFiles, outputFilePath, intendedUsage, authorizerConfig)
 }
 
-async function doWork(){
+async function main(){
     fs.mkdirSync(tmpFolder, { recursive: true}) // create target folder if it doesn'\t exist
 
     const configContent = fs.readFileSync(configFilePath)
     const globalConfig = JSON.parse(configContent)
 
+    const authorizerConfigContent = fs.readFileSync('src/config/authorizer.json')
+    const authorizerConfig = JSON.parse(authorizerConfigContent)
     const config = globalConfig.openapi // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
@@ -380,16 +232,16 @@ async function doWork(){
         console.log(config[i])
         for(let j=0; j<openapiFiles.length; j++){
             const outputFile = openapiFiles[j].replace('internal', 'external')
-            await internalToExternal(openapiFiles[j], outputFile)
+            await internalToExternal(openapiFolder, openapiFiles[j], outputFile)
             openExternalFiles.push(outputFile)
             if(generateBundle){
                 const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
-                await makeBundle(outputFile, bundleFile)
+                await makeBundle(openapiFolder, outputFile, bundleFile)
             }
         }
-        await doSingleWork(intendedUsage, servicePath, openExternalFiles)
+        await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
     }
 }
-doWork().then(function(){
+main().then(function(){
     console.log('done')
 })
