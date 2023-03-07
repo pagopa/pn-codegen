@@ -4,26 +4,11 @@ const yaml = require('js-yaml')
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
+const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi } = require('./lib/yamlUtils')
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
-
-function filterApiDocByPath(paths, servicePath){
-    const regexp = new RegExp('^/'+servicePath+'/');
-    return Object.fromEntries(Object.entries(paths).filter(([key]) => regexp.test(key)));
-}
-
-function removePathPrefix(paths, servicePath){
-    const regexp = new RegExp('^/'+servicePath+'/');
-    return Object.fromEntries(
-        Object.entries(paths).map(([key, val]) => {
-            const newKey = key.replace(regexp, '/')
-            return  [newKey, val]
-        })
-    );
-}
-
 
 async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
     if(['B2B', 'WEB', 'IO'].indexOf(intendedUsage)<0){
@@ -38,7 +23,7 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
         try {
             const doc = yaml.load(fileContent);
             // loop through methods and remove all methods that don't match the service path
-            doc.paths = filterApiDocByPath(doc.paths, servicePath)
+            doc.paths = filterApiDocByPath(doc.paths, [servicePath])
             doc.paths = removePathPrefix(doc.paths, servicePath)
     
             fs.writeFileSync(tmpFolder+'/clean-'+openapiFiles[i], yaml.dump(doc))
@@ -71,7 +56,7 @@ async function main(){
     const config = globalConfig.openapi // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration, bundlePathPrefixes } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         for(let j=0; j<openapiFiles.length; j++){
@@ -80,7 +65,13 @@ async function main(){
             openExternalFiles.push(outputFile)
             if(generateBundle){
                 const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
-                await makeBundle(openapiFolder, outputFile, bundleFile)
+                if(bundlePathPrefixes && bundlePathPrefixes.length>0){
+                    const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
+                    createFilteredOpenApi(bundlePathPrefixes, openapiFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
+                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, openapiFolder+'/'+bundleFile)
+                } else {
+                    await makeBundle(openapiFolder+'/'+outputFile, openapiFolder+'/'+bundleFile)
+                }
             }
         }
         if(!skipAWSGeneration){

@@ -13,10 +13,10 @@ async function internalToExternal(openapiFolder, inputFile, outputFile){
     console.log(`${stdout}`);
 }
 
-async function makeBundle(openapiFolder, inputFile, outputFile){
+async function makeBundle(inputFile, outputFile){
 
-    const redoclyCommand = `redocly bundle ${openapiFolder}/${inputFile} --output ${openapiFolder}/${outputFile}`
-    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${openapiFolder}/${outputFile}`
+    const redoclyCommand = `redocly bundle ${inputFile} --output ${outputFile}`
+    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${outputFile}`
 
     console.log(redoclyCommand)
     const { stdout, stderr } = await exec(redoclyCommand);
