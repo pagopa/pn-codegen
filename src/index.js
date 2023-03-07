@@ -1,6 +1,5 @@
 const fs = require('fs')
 const yaml = require('js-yaml')
-const _ = require('lodash')
 
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
