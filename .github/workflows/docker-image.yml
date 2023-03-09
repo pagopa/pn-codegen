@@ -27,14 +27,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.CONTAINER_REGISTRY }}/${{ github.repository }}
+
       - name: Build and push container image
         uses: docker/build-push-action@v3
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.image_tag }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       
-      - name: Print image tag
+      - name: Print image tags and labels
         run: |
-          echo "Image tag ${{ env.image_tag }}"
+          echo "Image tags: ${{ steps.meta.outputs.tags }}"
+          echo "Image labels: ${{ steps.meta.outputs.labels }}"
