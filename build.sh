@@ -1,2 +1,2 @@
 #! /bin/sh
-docker build . -t pagopa/pn-openapi-processor
+docker build . -t pagopa/pn-codegen
