@@ -3,7 +3,7 @@ name: pn-codegen docker image build and publish
 on:
   push:
     branches: [ "develop", "main", "releases/**" ]
-  tags: [ "*" ]
+    tags: [ "*" ]
   pull_request:
     branches: [ "develop", "main" ]
 
