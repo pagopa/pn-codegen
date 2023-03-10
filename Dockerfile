@@ -1,16 +1,16 @@
 FROM node:lts-alpine3.17
 
 # Create app directory
-WORKDIR /usr/src/app
+RUN mkdir -p /usr/local/app
 
-COPY ./src ./src
+COPY ./src /usr/local/app/src
 
-COPY entrypoint.sh ./entrypoint.sh
+COPY entrypoint.sh /usr/local/app/entrypoint.sh
 
-RUN chmod +x ./entrypoint.sh
+RUN chmod +x /usr/local/app/entrypoint.sh
 
-RUN cd src && npm install
+RUN cd /usr/local/app/src && npm install
 
 RUN npm install -g @redocly/cli && npm install -g @stoplight/spectral-cli
 
-CMD [ "/bin/sh", "entrypoint.sh" ]
+CMD [ "/bin/sh", "/usr/local/app/entrypoint.sh" ]

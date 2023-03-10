@@ -1,0 +1,49 @@
+name: pn-codegen docker image build and publish
+
+on:
+  push:
+    branches: [ "develop", "main", "releases/**" ]
+    tags: [ "*" ]
+  pull_request:
+    branches: [ "develop", "main" ]
+
+env:
+  CONTAINER_REGISTRY: ghcr.io
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      image_tag: ${{ github.repository }}:${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Login to GitHub Package
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.CONTAINER_REGISTRY }}/${{ github.repository }}
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Print image tags and labels
+        run: |
+          echo "Image tags: ${{ steps.meta.outputs.tags }}"
+          echo "Image labels: ${{ steps.meta.outputs.labels }}"
