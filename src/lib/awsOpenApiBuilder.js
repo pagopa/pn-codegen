@@ -180,7 +180,7 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 },
                 responseTemplates: {         
-                    'application/json': "{\"message\": \"$context.error.validationErrorString\"}"
+                    'application/json': "{\"message\": \"Validation errors: $context.error.validationErrorString\"}"
                 }
             },
             BAD_REQUEST_BODY: {
@@ -188,7 +188,7 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 },
                 responseTemplates: {         
-                    'application/json': "{\"message\": \"$context.error.validationErrorString\"}"
+                    'application/json': "{\"message\": \"Validation errors: $context.error.validationErrorString\"}"
                 }
             }
         },
