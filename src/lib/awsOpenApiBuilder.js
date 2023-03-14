@@ -174,6 +174,22 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
                 responseParameters: {
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 }
+            },
+            BAD_REQUEST_PARAMETERS: {
+                responseParameters: {
+                    'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
+                },
+                responseTemplates: {         
+                    'application/json': "{\"message\": \"$context.error.validationErrorString\"}"
+                }
+            },
+            BAD_REQUEST_BODY: {
+                responseParameters: {
+                    'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
+                },
+                responseTemplates: {         
+                    'application/json': "{\"message\": \"$context.error.validationErrorString\"}"
+                }
             }
         },
         "x-amazon-apigateway-request-validators" : {
