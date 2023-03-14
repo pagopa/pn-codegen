@@ -174,6 +174,22 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
                 responseParameters: {
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 }
+            },
+            BAD_REQUEST_PARAMETERS: {
+                responseParameters: {
+                    'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
+                },
+                responseTemplates: {         
+                    'application/json': "{\"status\": 400, \"title\": \"VALIDATION ERROR\", \"traceId\": \"$context.xrayTraceId\", \"errors\": [ { \"code\": \"PN_INVALID_PARAMETERS\", \"detail\": \"Validation errors: $context.error.validationErrorString\" } ]}"
+                }
+            },
+            BAD_REQUEST_BODY: {
+                responseParameters: {
+                    'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
+                },
+                responseTemplates: {         
+                    'application/json': "{\"status\": 400, \"title\": \"VALIDATION ERROR\", \"traceId\": \"$context.xrayTraceId\", \"errors\": [ { \"code\": \"PN_INVALID_BODY\", \"detail\": \"Validation errors: $context.error.validationErrorString\" } ]}"
+                }
             }
         },
         "x-amazon-apigateway-request-validators" : {
