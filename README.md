@@ -9,6 +9,12 @@ Posizionarsi nella root del progetto ed eseguire lo script:
 Successivamente eseguire:
 `./scripts/generate-code.sh`
 
+### Windows:
+In ambiente windows è necessario modificare il comando docker-run all'interno dello script generate-code.sh come di seguito:
+`docker run --rm -v //${absolute_path_microservice}:/usr/local/app/microsvc --name=pn-codegen ghcr.io/pagopa/pn-codegen:${tag}`
+
+Sostituendo il placeholder ${absolute_path_microservice} con il path assoluto del microservizio (utilizzando i frontslash)
+
 ### Parametri
 Se si vuole anche eseguire lo script oltre che generarlo:
 
