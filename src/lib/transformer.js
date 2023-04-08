@@ -1,8 +1,9 @@
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const fs = require('fs')
 
-async function internalToExternal(openapiFolder, inputFile, outputFile){
-    const command = `cat ${openapiFolder}/${inputFile} | sed -e '/.*<details no-external>.*/,/<\\/details>/ d' | grep -v "# NO EXTERNAL" | grep -v "# NOT YET IMPLEMENTED" | sed -e '/# ONLY EXTERNAL/s/^#//' > ${openapiFolder}/${outputFile}`
+async function internalToExternal(inputFile, outputFile){
+    const command = `cat ${inputFile} | sed -e '/.*<details no-external>.*/,/<\\/details>/ d' | grep -v "# NO EXTERNAL" | grep -v "# NOT YET IMPLEMENTED" | sed -e '/# ONLY EXTERNAL/s/^#//' > ${outputFile}`
     
     console.log('internal to external', command)
     const { stdout, stderr } = await exec(command);
@@ -63,10 +64,19 @@ async function updateIntegerType(inputFile){
 
 }
 
+async function copyYamlFiles(sourceFolder, destFolder, inclusionList = []){
+    fs.readdirSync(sourceFolder).forEach(file => {
+        if(file.endsWith('.yaml') && (inclusionList.length==0 || inclusionList.indexOf(file)>=0)){
+            fs.copyFileSync(sourceFolder+'/'+file, destFolder+'/'+file)
+        }
+    });
+}
+
 module.exports = {
     internalToExternal,
     makeBundle,
     mergeYaml,
     removeIntFormat,
-    updateIntegerType
+    updateIntegerType,
+    copyYamlFiles
 }
