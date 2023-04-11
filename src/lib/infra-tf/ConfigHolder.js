@@ -82,6 +82,19 @@ class ConfigHolder {
     return arr.length == 0 ? null : arr[0].aws_id;
   }
 
+  getVpcSe( account_code, env_code ) {
+    let arr = this.configurations.envs[ env_code ]?.accounts;
+    
+    if( arr ) {
+      arr = arr.filter( (a) => a.code == account_code );
+    }
+    else {
+      arr = []
+    }
+
+    return arr.length == 0 ? {} : arr[0].vpcse;
+  }
+
   listEnvAccounts( env_code ) {
     let arr = this.configurations.envs[ env_code ]?.accounts || [];
 

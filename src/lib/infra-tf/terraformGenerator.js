@@ -59,6 +59,12 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
     const aws_id = configs.getAwsAccountId( env_account_code, env_code )
     terraform_file_content += `
       ${toTfSymbol(env_account_code)}_aws_account_id = "${aws_id}"`
+    
+    const vpcse_map = configs.getVpcSe( env_account_code, env_code )
+    for( let vpcse_key in vpcse_map ) {
+      terraform_file_content += `
+        ${toTfSymbol(env_account_code)}_${toTfSymbol(vpcse_key)}_vpcse = "${vpcse_map[vpcse_key]}"`
+    }
   }
 
 
