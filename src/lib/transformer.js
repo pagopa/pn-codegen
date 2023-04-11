@@ -65,11 +65,13 @@ async function updateIntegerType(inputFile){
 }
 
 async function copyYamlFiles(sourceFolder, destFolder, inclusionList = []){
-    fs.readdirSync(sourceFolder).forEach(file => {
-        if(file.endsWith('.yaml') && (inclusionList.length==0 || inclusionList.indexOf(file)>=0)){
-            fs.copyFileSync(sourceFolder+'/'+file, destFolder+'/'+file)
-        }
-    });
+    if( fs.existsSync(sourceFolder) ) {
+        fs.readdirSync(sourceFolder).forEach(file => {
+            if(file.endsWith('.yaml') && (inclusionList.length==0 || inclusionList.indexOf(file)>=0)){
+                fs.copyFileSync(sourceFolder+'/'+file, destFolder+'/'+file)
+            }
+        });
+    }
 }
 
 module.exports = {
