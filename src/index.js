@@ -66,7 +66,7 @@ async function main(){
             if(commonFiles){
                 // for each file, generate the internal-to-external (in place)
                 for(let k=0; k<commonFiles.length; k++){
-                    await internalToExternal(tmpFolder+'/'+commonFiles[k], tmpFolder+'/'+commonFiles[k])
+                    await internalToExternal(openapiFolder+'/'+commonFiles[k], tmpFolder+'/'+commonFiles[k])
                 }
             }
 
@@ -79,7 +79,7 @@ async function main(){
                 if(bundlePathPrefixes && bundlePathPrefixes.length>0){
                     const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
                     createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
-                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, openapiFolder+'/'+bundleFile)
+                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, tmpFolder+'/'+bundleFile)
                 } else {
                     await makeBundle(tmpFolder+'/'+outputFile, tmpFolder+'/'+bundleFile)
                 }
