@@ -1,7 +1,7 @@
 const fs = require('fs')
 const yaml = require('js-yaml')
 
-const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType } = require('./lib/transformer')
+const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi } = require('./lib/yamlUtils')
@@ -50,6 +50,8 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
 async function main(){
     fs.mkdirSync(tmpFolder, { recursive: true}) // create target folder if it doesn'\t exist
 
+    copyYamlFiles(openapiFolder, tmpFolder)
+
     const configContent = fs.readFileSync(configFilePath)
     const globalConfig = JSON.parse(configContent)
 
@@ -58,23 +60,34 @@ async function main(){
     const config = globalConfig.openapi || [] // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration, bundlePathPrefixes } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         for(let j=0; j<openapiFiles.length; j++){
-            const outputFile = openapiFiles[j].replace('internal', 'external')
-            await internalToExternal(openapiFolder, openapiFiles[j], outputFile)
-            openExternalFiles.push(outputFile)
-            if(generateBundle){
-                const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
-                if(bundlePathPrefixes && bundlePathPrefixes.length>0){
-                    const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
-                    createFilteredOpenApi(bundlePathPrefixes, openapiFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
-                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, openapiFolder+'/'+bundleFile)
-                } else {
-                    await makeBundle(openapiFolder+'/'+outputFile, openapiFolder+'/'+bundleFile)
+
+            if(commonFiles){
+                // for each file, generate the internal-to-external (in place)
+                for(let k=0; k<commonFiles.length; k++){
+                    await internalToExternal(tmpFolder+'/'+commonFiles[k], tmpFolder+'/'+commonFiles[k])
                 }
             }
+
+            const outputFile = openapiFiles[j].replace('internal', 'external')
+            await internalToExternal(tmpFolder+'/'+openapiFiles[j], tmpFolder+'/'+outputFile)
+            // if common files, create a copy to be restored
+            openExternalFiles.push(outputFile)
+            const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
+            if(generateBundle){
+                if(bundlePathPrefixes && bundlePathPrefixes.length>0){
+                    const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
+                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
+                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, openapiFolder+'/'+bundleFile)
+                } else {
+                    await makeBundle(tmpFolder+'/'+outputFile, tmpFolder+'/'+bundleFile)
+                }
+            }
+            // if copy files
+            await copyYamlFiles(tmpFolder, openapiFolder, [bundleFile, outputFile])
         }
         if(!skipAWSGeneration){
             await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
