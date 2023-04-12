@@ -65,6 +65,12 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
       terraform_file_content += `
         ${toTfSymbol(env_account_code)}_${toTfSymbol(vpcse_key)}_vpcse = "${vpcse_map[vpcse_key]}"`
     }
+
+    const params_map = configs.getGenericParams( env_account_code, env_code )
+    for( let key in params_map ) {
+      terraform_file_content += `
+        ${toTfSymbol(key)} = "${params_map[key]}"`
+    }
   }
 
 

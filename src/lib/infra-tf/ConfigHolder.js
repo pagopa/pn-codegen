@@ -95,6 +95,19 @@ class ConfigHolder {
     return arr.length == 0 ? {} : arr[0].vpcse;
   }
 
+  getGenericParams( account_code, env_code ) {
+    let arr = this.configurations.envs[ env_code ]?.accounts;
+    
+    if( arr ) {
+      arr = arr.filter( (a) => a.code == account_code );
+    }
+    else {
+      arr = []
+    }
+
+    return arr.length == 0 ? {} : arr[0].params;
+  }
+
   listEnvAccounts( env_code ) {
     let arr = this.configurations.envs[ env_code ]?.accounts || [];
 
