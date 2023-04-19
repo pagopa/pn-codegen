@@ -6,6 +6,8 @@ const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi } = require('./lib/yamlUtils')
 
+const { terraformGenerator } = require('./lib/infra-tf/index')
+
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
@@ -55,7 +57,7 @@ async function main(){
 
     const authorizerConfigContent = fs.readFileSync('src/config/authorizer.json')
     const authorizerConfig = JSON.parse(authorizerConfigContent)
-    const config = globalConfig.openapi // openapi codegen rules
+    const config = globalConfig.openapi || [] // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
         const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
@@ -92,7 +94,13 @@ async function main(){
         }
     }
 
-    checkBundles(openapiFolder, globalConfig.openapiBundlePresenceCheck)
+    if( globalConfig.openapiBundlePresenceCheck ) {
+      checkBundles(openapiFolder, globalConfig.openapiBundlePresenceCheck)
+    }
+
+    if( globalConfig['infrastructure-tf'] ) {
+      await terraformGenerator( globalConfig['infrastructure-tf'], "microsvc/" );
+    }
 }
 
 main().then(function(){
