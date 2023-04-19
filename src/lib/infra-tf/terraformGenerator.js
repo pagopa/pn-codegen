@@ -116,6 +116,7 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
     terraform_file_content += "\n\n"
   }
 
+  // - The terraform tfvars destination file is better without indentation
   terraform_file_content = terraform_file_content
     .replace(/^        /gm, '')
     .replace(/^      /gm, '')
