@@ -47,6 +47,7 @@
             "x-amazon-apigateway-authorizer": {
                 "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-jwtAuthorizerLambda/invocations",
                 "authorizerResultTtlInSeconds": 300,
+                "identityValidationExpression": "^Bearer [-0-9a-zA-Z\\._]+$",
                 "type": "token"
             }
             }
