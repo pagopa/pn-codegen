@@ -33,7 +33,7 @@
             "x-amazon-apigateway-authorizer": {
                 "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ioAuthorizerLambda/invocations",
                 "authorizerResultTtlInSeconds": 300,
-                "identitySource": "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
+                "identitySource": "method.request.header.x-api-key, method.request.header.x-pagopa-lollipop-user-id, method.request.header.x-pagopa-cx-taxid",
                 "type": "request"
             }
             }
