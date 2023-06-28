@@ -39,7 +39,8 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
             'integration.request.header.x-pagopa-pn-jti': "context.authorizer.cx_jti",
             'integration.request.header.x-pagopa-pn-src-ch': "'"+intendedUsage+"'",
             'integration.request.header.x-pagopa-pn-cx-type': "context.authorizer.cx_type",
-            'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups"
+            'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups",
+            'integration.request.header.x-pagopa-pn-src-ch-details': "context.authorizer.sourceChannelDetails"
         });
     }
 
