@@ -2,54 +2,61 @@
     "securitySchemes": {
         "B2B": {
             "api_key_openapi": {
-            "type": "apiKey",
-            "name": "x-api-key",
-            "in": "header"
+                "type": "apiKey",
+                "name": "x-api-key",
+                "in": "header"
             },
             "pn-auth-fleet_ApiKeyAuthorizerV2_openapi": {
-            "type": "apiKey",
-            "name": "x-api-key",
-            "in": "header",
-            "x-amazon-apigateway-authtype": "custom",
-            "x-amazon-apigateway-authorizer": {
-                "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations",
-                "authorizerResultTtlInSeconds": 60,
-                "identitySource": "method.request.header.x-api-key",
-                "type": "request"
-            }
+                "type": "apiKey",
+                "name": "x-api-key",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ApiKeyAuthorizerV2Lambda/invocations",
+                    "authorizerResultTtlInSeconds": 60,
+                    "identitySource": "method.request.header.x-api-key",
+                    "type": "request"
+                }
             }
         },
         "IO": {
             "api_key_openapi": {
-            "type": "apiKey",
-            "name": "x-api-key",
-            "in": "header"
+                "type": "apiKey",
+                "name": "x-api-key",
+                "in": "header"
             },
             "pn-auth-fleet_IoAuthorizer_openapi": {
-            "type": "apiKey",
-            "name": "Unused",
-            "in": "header",
-            "x-amazon-apigateway-authtype": "custom",
-            "x-amazon-apigateway-authorizer": {
-                "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ioAuthorizerLambda/invocations",
-                "authorizerResultTtlInSeconds": 300,
-                "identitySource": "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
-                "type": "request"
-            }
+                "type": "apiKey",
+                "name": "Unused",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-ioAuthorizerLambda/invocations",
+                    "authorizerResultTtlInSeconds": 300,
+                    "identitySource": "method.request.header.x-api-key, method.request.header.x-pagopa-cx-taxid",
+                    "type": "request"
+                }
             }
         },
         "WEB": {
             "pn-auth-fleet_jwtAuthorizer_openapi": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header",
-            "x-amazon-apigateway-authtype": "custom",
-            "x-amazon-apigateway-authorizer": {
-                "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-jwtAuthorizerLambda/invocations",
-                "authorizerResultTtlInSeconds": 300,
-                "identityValidationExpression": "^Bearer\\s([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_\\-]+)$",
-                "type": "token"
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-jwtAuthorizerLambda/invocations",
+                    "authorizerResultTtlInSeconds": 300,
+                    "identityValidationExpression": "^Bearer\\s([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_\\-]+)$",
+                    "type": "token"
+                }
             }
+        },
+        "CN_BE": {
+            "api_key_openapi": {
+                "type": "apiKey",
+                "name": "x-api-key",
+                "in": "header"
             }
         }
     },
@@ -71,6 +78,11 @@
             { 
                 "pn-auth-fleet_IoAuthorizer_openapi": [] 
             },
+            { 
+                "api_key_openapi": [] 
+            }
+        ],
+        "CN_BE": [
             { 
                 "api_key_openapi": [] 
             }
