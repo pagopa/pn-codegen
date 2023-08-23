@@ -57,25 +57,35 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
 function enrichPaths(paths, intendedUsage, authorizerConfig){
     _.forOwn(paths, function(methods, path) {
         _.forOwn(methods, function(methodDetail, method) {
+            console.log('method detail', methodDetail)
+            console.log('method', method)
+            console.log('path', path)
+
             // check if integration is lambda
             const lambdaName = paths[path][method]['x-pagopa-lambda-name']
-            const accountId = paths[path][method]['x-pagopa-lambda-account']==='confinfo'?'${stageVariables.ConfidentialInfoAccountId}':'${AWS::AccountId}'
-
+            const accountId = paths[path][method]['x-pagopa-lambda-account']==='confinfo'?'${ConfidentialInfoAccountId}':'${AWS::AccountId}'
 
             paths[path][method].security = getMethodSecurityItemsByIntendedUsage(intendedUsage, authorizerConfig)
             if(lambdaName){
+                let integrationUri = "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:"+accountId+":function:"+lambdaName+"/invocations"
+                if(paths[path][method]['x-pagopa-lambda-account']==='confinfo'){
+                    integrationUri = {
+                        'Fn::Sub': integrationUri
+                    }
+                }
                 paths[path][method]['x-amazon-apigateway-integration'] = {
-                    uri: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:"+accountId+":function:"+lambdaName+"/invocations",
-                    httpMethod: "ANY",
+                    uri: integrationUri,
+                    httpMethod: "POST",
                     requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
                     passthroughBehavior: "when_no_match",
-                    connectionType: "VPC_LINK",
+                    contentHandling: "CONVERT_TO_TEXT",
                     timeoutInMillis: 29000,
                     type: "aws_proxy"
                 }    
             } else {
                 const customRewritePath = paths[path][method]['x-pagopa-rewrite-path']
                 const apiPath = customRewritePath?customRewritePath:"${stageVariables.ServiceApiPath}"+path
+
                 paths[path].options = {
                     // TODO: options is not required for all intended usages
                     operationId: "Options for "+path+" API CORS",
