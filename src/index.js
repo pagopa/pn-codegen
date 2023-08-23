@@ -13,7 +13,7 @@ const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
 
 async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
-    if(['B2B', 'WEB', 'IO'].indexOf(intendedUsage)<0){
+    if(['B2B', 'WEB', 'IO', 'CN_BE'].indexOf(intendedUsage)<0){
         console.error('Intended usage not supported: '+intendedUsage)
         return
     }

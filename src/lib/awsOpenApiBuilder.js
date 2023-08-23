@@ -57,30 +57,60 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
 function enrichPaths(paths, intendedUsage, authorizerConfig){
     _.forOwn(paths, function(methods, path) {
         _.forOwn(methods, function(methodDetail, method) {
-            paths[path].options = {
-                operationId: "Options for "+path+" API CORS",
-                'x-amazon-apigateway-integration': {
-                    uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}"+path,
+            console.log('method detail', methodDetail)
+            console.log('method', method)
+            console.log('path', path)
+
+            // check if integration is lambda
+            const lambdaName = paths[path][method]['x-pagopa-lambda-name']
+            const accountId = paths[path][method]['x-pagopa-lambda-account']==='confinfo'?'${ConfidentialInfoAccountId}':'${AWS::AccountId}'
+
+            paths[path][method].security = getMethodSecurityItemsByIntendedUsage(intendedUsage, authorizerConfig)
+            if(lambdaName){
+                let integrationUri = "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:"+accountId+":function:"+lambdaName+"/invocations"
+                if(paths[path][method]['x-pagopa-lambda-account']==='confinfo'){
+                    integrationUri = {
+                        'Fn::Sub': integrationUri
+                    }
+                }
+                paths[path][method]['x-amazon-apigateway-integration'] = {
+                    uri: integrationUri,
+                    httpMethod: "POST",
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
+                    passthroughBehavior: "when_no_match",
+                    contentHandling: "CONVERT_TO_TEXT",
+                    timeoutInMillis: 29000,
+                    type: "aws_proxy"
+                }    
+            } else {
+                const customRewritePath = paths[path][method]['x-pagopa-rewrite-path']
+                const apiPath = customRewritePath?customRewritePath:"${stageVariables.ServiceApiPath}"+path
+
+                paths[path].options = {
+                    // TODO: options is not required for all intended usages
+                    operationId: "Options for "+path+" API CORS",
+                    'x-amazon-apigateway-integration': {
+                        uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
+                        connectionId: "${stageVariables.NetworkLoadBalancerLink}",
+                        httpMethod: "ANY",
+                        requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true),
+                        passthroughBehavior: "when_no_match",
+                        connectionType: "VPC_LINK",
+                        timeoutInMillis: 29000,
+                        type: "http_proxy"
+                    }
+                }
+    
+                paths[path][method]['x-amazon-apigateway-integration'] = {
+                    uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                     connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                     httpMethod: "ANY",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
                     passthroughBehavior: "when_no_match",
                     connectionType: "VPC_LINK",
                     timeoutInMillis: 29000,
                     type: "http_proxy"
-                }
-            }
-
-            paths[path][method].security = getMethodSecurityItemsByIntendedUsage(intendedUsage, authorizerConfig)
-            paths[path][method]['x-amazon-apigateway-integration'] = {
-                uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/${stageVariables.ServiceApiPath}"+path,
-                connectionId: "${stageVariables.NetworkLoadBalancerLink}",
-                httpMethod: "ANY",
-                requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
-                passthroughBehavior: "when_no_match",
-                connectionType: "VPC_LINK",
-                timeoutInMillis: 29000,
-                type: "http_proxy"
+                }    
             }
 
             if(!paths[path][method].parameters){
