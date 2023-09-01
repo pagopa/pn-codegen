@@ -3,7 +3,7 @@ FROM node:lts-alpine3.17
 # - Install base tools.
 #   This is a time consuming task. I prefer have it as first step to maximize 
 #   docker build cache hits during development
-RUN npm install -g @redocly/cli && npm install -g @stoplight/spectral-cli
+RUN npm install -g @redocly/cli@1.0.2 && npm install -g @stoplight/spectral-cli@6.10.1
 
 # - Create app directory
 RUN mkdir -p /usr/local/app
