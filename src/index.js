@@ -1,10 +1,11 @@
 const fs = require('fs')
+const path = require('path')
 const yaml = require('js-yaml')
 
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
-const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi } = require('./lib/yamlUtils')
+const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
 
 const { terraformGenerator } = require('./lib/infra-tf/index')
 
@@ -60,9 +61,10 @@ async function main(){
     const config = globalConfig.openapi || [] // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
         const openExternalFiles = []
         console.log(config[i])
+        const bundleInputFiles = []
         for(let j=0; j<openapiFiles.length; j++){
 
             if(commonFiles){
@@ -78,17 +80,33 @@ async function main(){
             openExternalFiles.push(outputFile)
             const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
             if(generateBundle){
+                let inputFileForBundle = outputFile
                 if(bundlePathPrefixes && bundlePathPrefixes.length>0){
                     const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
-                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
-                    await makeBundle(tmpFolder+'/'+cleanForBundleFile, tmpFolder+'/'+bundleFile)
-                } else {
-                    await makeBundle(tmpFolder+'/'+outputFile, tmpFolder+'/'+bundleFile)
+                    inputFileForBundle = cleanForBundleFile
+                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+inputFileForBundle)
+                } 
+
+                bundleInputFiles.push(tmpFolder+'/'+inputFileForBundle)
+                if(!mergeBeforeBundleGeneration){
+                    await makeBundle(tmpFolder+'/'+inputFileForBundle, tmpFolder+'/'+bundleFile)
                 }
             }
             // if copy files
             await copyYamlFiles(tmpFolder, openapiFolder, [bundleFile, outputFile])
         }
+
+        if(generateBundle && mergeBeforeBundleGeneration){
+            if(bundleInputFiles.length===0){
+                throw new Error("Bundle input files array is empty")
+            }
+            const bundleFile = bundleInputFiles[0].replace('.yaml', '-bundle.yaml')
+            const mergedFile = bundleInputFiles[0].replace('.yaml', '-merged.yaml')
+            mergeExternalFilesForBundle(bundleInputFiles, mergedFile)
+            await makeBundle(mergedFile, bundleFile, true)
+            await copyYamlFiles(tmpFolder, openapiFolder, [path.basename(mergedFile), path.basename(bundleFile)])
+        }
+
         if(!skipAWSGeneration){
             await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
         }

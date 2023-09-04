@@ -14,9 +14,14 @@ async function internalToExternal(inputFile, outputFile){
     console.log(`${stdout}`);
 }
 
-async function makeBundle(inputFile, outputFile){
+async function makeBundle(inputFile, outputFile, fromMerge = false){
 
-    const redoclyCommand = `redocly bundle ${inputFile} --output ${outputFile}`
+    const options = []
+    if(fromMerge){
+        options.push('-k')
+    }
+
+    const redoclyCommand = `redocly bundle ${inputFile} ${options.join(' ')} --output ${outputFile}`
     const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${outputFile}`
 
     console.log(redoclyCommand)

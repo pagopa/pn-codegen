@@ -57,9 +57,9 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
 function enrichPaths(paths, intendedUsage, authorizerConfig){
     _.forOwn(paths, function(methods, path) {
         _.forOwn(methods, function(methodDetail, method) {
-            console.log('method detail', methodDetail)
-            console.log('method', method)
-            console.log('path', path)
+//            console.log('method detail', methodDetail)
+//            console.log('method', method)
+//            console.log('path', path)
 
             // check if integration is lambda
             const lambdaName = paths[path][method]['x-pagopa-lambda-name']
