@@ -80,18 +80,16 @@ async function main(){
             openExternalFiles.push(outputFile)
             const bundleFile = outputFile.replace('.yaml', '-bundle.yaml')
             if(generateBundle){
+                let inputFileForBundle = outputFile
                 if(bundlePathPrefixes && bundlePathPrefixes.length>0){
                     const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
-                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+cleanForBundleFile)
-                    bundleInputFiles.push(tmpFolder+'/'+cleanForBundleFile)
-                    if(!mergeBeforeBundleGeneration){
-                        await makeBundle(tmpFolder+'/'+cleanForBundleFile, tmpFolder+'/'+bundleFile)
-                    }
-                } else {
-                    bundleInputFiles.push(tmpFolder+'/'+outputFile)
-                    if(!mergeBeforeBundleGeneration){
-                        await makeBundle(tmpFolder+'/'+outputFile, tmpFolder+'/'+bundleFile)
-                    }
+                    inputFileForBundle = tmpFolder+'/'+cleanForBundleFile
+                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, inputFileForBundle)
+                } 
+
+                bundleInputFiles.push(tmpFolder+'/'+inputFileForBundle)
+                if(!mergeBeforeBundleGeneration){
+                    await makeBundle(tmpFolder+'/'+inputFileForBundle, tmpFolder+'/'+bundleFile)
                 }
             }
             // if copy files
