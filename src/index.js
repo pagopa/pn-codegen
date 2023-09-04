@@ -83,8 +83,8 @@ async function main(){
                 let inputFileForBundle = outputFile
                 if(bundlePathPrefixes && bundlePathPrefixes.length>0){
                     const cleanForBundleFile = outputFile.replace('.yaml', '-filtered.yaml')
-                    inputFileForBundle = tmpFolder+'/'+cleanForBundleFile
-                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, inputFileForBundle)
+                    inputFileForBundle = cleanForBundleFile
+                    createFilteredOpenApi(bundlePathPrefixes, tmpFolder+'/'+outputFile, tmpFolder+'/'+inputFileForBundle)
                 } 
 
                 bundleInputFiles.push(tmpFolder+'/'+inputFileForBundle)
