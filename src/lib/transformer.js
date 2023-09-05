@@ -14,7 +14,7 @@ async function internalToExternal(inputFile, outputFile){
     console.log(`${stdout}`);
 }
 
-async function makeBundle(inputFile, outputFile, fromMerge = false){
+async function makeBundle(inputFile, outputFile, fromMerge = false, skipLint = false){
 
     const options = []
     if(fromMerge){
@@ -31,6 +31,19 @@ async function makeBundle(inputFile, outputFile, fromMerge = false){
         console.error(`redocly error: ${stderr}`);
     }
     
+    if(!skipLint){
+        console.log(lintCommand)
+        const { lintStdout, lintStderr } = await exec(lintCommand);
+    
+        if (lintStderr) {
+            console.error(`lint error: ${lintStderr}`);
+        }
+    }
+}
+
+async function lint(outputFile){
+    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${outputFile}`
+
     console.log(lintCommand)
     const { lintStdout, lintStderr } = await exec(lintCommand);
 
@@ -85,5 +98,6 @@ module.exports = {
     mergeYaml,
     removeIntFormat,
     updateIntegerType,
-    copyYamlFiles
+    copyYamlFiles,
+    lint
 }
