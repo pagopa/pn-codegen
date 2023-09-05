@@ -1,7 +1,9 @@
 const fs = require('fs')
 const path = require('path')
 const yaml = require('js-yaml')
+const _ = require('lodash')
 
+const { downloadFile } = require('./lib/httpClient')
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
@@ -65,7 +67,24 @@ async function main(){
         const openExternalFiles = []
         console.log(config[i])
         const bundleInputFiles = []
+        const remoteBundleFiles = []
         for(let j=0; j<openapiFiles.length; j++){
+
+            if(_.isObject(openapiFiles[j])){
+                if(!generateBundle || !mergeBeforeBundleGeneration){
+                    throw new Error("Https openapi files are only supported with generateBundle and mergeBeforeBundleGeneration options")
+                }
+
+                const outDownloadFile = tmpFolder+'/'+path.basename(openapiFiles[j].url)
+                await downloadFile(openapiFiles[j].url, outDownloadFile)
+                console.log('downloaded remote OpenApi file to '+outDownloadFile)
+                remoteBundleFiles.push({
+                    path: outDownloadFile,
+                    mergeDescription: openapiFiles[j].mergeDescription
+                })
+
+                continue;
+            }
 
             if(commonFiles){
                 // for each file, generate the internal-to-external (in place)
@@ -104,6 +123,12 @@ async function main(){
             const mergedFile = bundleInputFiles[0].replace('.yaml', '-merged.yaml')
             mergeExternalFilesForBundle(bundleInputFiles, mergedFile)
             await makeBundle(mergedFile, bundleFile, true)
+
+            if(remoteBundleFiles.length>0){
+              remoteBundleFiles.unshift(bundleFile)
+              mergeExternalFilesForBundle(remoteBundleFiles, bundleFile)
+            }
+            
             await copyYamlFiles(tmpFolder, openapiFolder, [path.basename(mergedFile), path.basename(bundleFile)])
         }
 

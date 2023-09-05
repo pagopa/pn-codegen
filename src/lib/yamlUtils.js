@@ -40,7 +40,18 @@ function deepMergePaths(masterPaths, newPaths){
                 if(!masterPaths[path][httpMethod]){
                     masterPaths[path][httpMethod] = methodValue
                 } else {
-                    throw new Error(`Duplicate path ${path} ${httpMethod}`)
+
+                    // compare if method differ
+                    const masterPathMethod = JSON.stringify(masterPaths[path][httpMethod])
+                    const newPathMethod = JSON.stringify(methodValue)
+
+                    if(masterPathMethod!==newPathMethod){
+                        console.debug('main path method', masterPathMethod)
+                        console.debug('new path method', newPathMethod)
+                        throw new Error(`Paths ${path} ${httpMethod} differ`)
+                    }
+
+//                    throw new Error(`Duplicate path ${path} ${httpMethod}`)
                 }
             });
         }
@@ -59,6 +70,8 @@ function deepMergeComponents(masterComponents, newComponents){
             const newComponentValue = JSON.stringify(componentValue)
 
             if(masterComponentValue!==newComponentValue){
+                console.debug('main component value', masterComponentValue)
+                console.debug('new component value', newComponentValue)
                 throw new Error(`Component ${componentName} differ`)
             }
         }
@@ -67,17 +80,52 @@ function deepMergeComponents(masterComponents, newComponents){
     return masterComponents
 }
 
+function mergeTags(masterTagsList, newTagsList){
+    for(let i=0; i<newTagsList.length; i++){
+        const existingTag = _.find(masterTagsList, (t) => {
+            return t.name === newTagsList[i].name
+        })
+
+        if(!existingTag){
+            masterTagsList.push(newTagsList[i])
+        } else {
+            if(newTagsList[i].description!==existingTag.description){
+                console.debug("Tags "+newTagsList[i].name+" differ", {
+                    main: existingTag.description,
+                    new: newTagsList[i].description
+                })
+                throw new Error("Tags "+newTagsList[i].name+" differ")
+            }
+        }
+    }
+
+    return masterTagsList
+}
+
 function mergeExternalFilesForBundle(inputFiles, outputFile){
     const fileContent = fs.readFileSync(inputFiles[0], 'utf-8')
 
     const masterDoc = yaml.load(fileContent);
 
     for(let i=1; i<inputFiles.length; i++){
-        const newFileContent = fs.readFileSync(inputFiles[i], 'utf-8')
+        let inputFilePath = inputFiles[i]
+        let mergeDescription = false
+        if(_.isObject(inputFiles[i])){
+            inputFilePath = inputFiles[i].path
+            mergeDescription = inputFiles[i].mergeDescription
+        }
+        const newFileContent = fs.readFileSync(inputFilePath, 'utf-8')
         const newDoc = yaml.load(newFileContent);
         masterDoc.paths = deepMergePaths(masterDoc.paths, newDoc.paths)
         masterDoc.components.parameters = deepMergeComponents(masterDoc.components.parameters, newDoc.components.parameters)        
-        masterDoc.components.schemas = deepMergeComponents(masterDoc.components.schemas, newDoc.components.schemas)        
+        masterDoc.components.schemas = deepMergeComponents(masterDoc.components.schemas, newDoc.components.schemas)    
+        if(newDoc.tags){
+            masterDoc.tags = mergeTags(masterDoc.tags, newDoc.tags)        
+        }    
+
+        if(mergeDescription){
+            masterDoc.description = masterDoc.description + '<br/>' + newDoc.description
+        }
     }
 
     fs.writeFileSync(outputFile, yaml.dump(masterDoc))
