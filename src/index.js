@@ -84,7 +84,7 @@ async function prepareSingleBundleAndGenerateIfRequired(outputFile, generateBund
 
         bundleInputFiles.push(tmpFolder+'/'+inputFileForBundle)
         if(!mergeBeforeBundleGeneration){
-            await makeBundle(tmpFolder+'/'+inputFileForBundle, tmpFolder+'/'+bundleFile)
+            await makeBundle(tmpFolder+'/'+inputFileForBundle, tmpFolder+'/'+outputFile)
         }
     }
 }
@@ -152,8 +152,23 @@ async function main(){
             }
         }
 
-        if(generateBundle && mergeBeforeBundleGeneration){
-            await mergeBundles(bundleInputFiles, remoteBundleFiles)
+        if(generateBundle) {
+            if( mergeBeforeBundleGeneration ) {
+              await mergeBundles(bundleInputFiles, remoteBundleFiles)
+            }
+            // - Retrocompatibilità con le configurazioni della versione precedente.
+            //   se l'array degli imput contiene un solo file non ha senso preoccuparsi
+            //   della configurazione mergeBeforeBundleGeneration
+            else if( bundleInputFiles.length == 1 ) {
+              const sourceFile = bundleInputFiles[0]
+              const bundleFile = sourceFile.replace('.yaml', '-bundle.yaml')
+              await makeBundle( sourceFile, bundleFile, false, true)
+              await copyYamlFiles(tmpFolder, openapiFolder, [path.basename( bundleFile )])
+            }
+            else {
+              console.log("################# BUNDLE NON GENERATO")
+            }
+            
         }
 
         if(!skipAWSGeneration){

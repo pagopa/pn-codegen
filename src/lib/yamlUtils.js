@@ -33,27 +33,29 @@ function createFilteredOpenApi(pathPrefixes, inputFile, outputFile){
 
 function deepMergePaths(masterPaths, newPaths){
     _.forOwn(newPaths, function(methods, path) {
-        if(!masterPaths[path]){ // se nel master non c'è il nuovo path, lo copio interamente
+        if( path != "/status") { // Usiamo lo status del master e ignoriamo gli altri. Questo path è trattato in maniera particolare dalle regole agid.
+          if(!masterPaths[path]){ // se nel master non c'è il nuovo path, lo copio interamente
             masterPaths[path] = methods
-        } else {
-            _.forOwn(methods, function(methodValue, httpMethod) {
-                if(!masterPaths[path][httpMethod]){
-                    masterPaths[path][httpMethod] = methodValue
-                } else {
+          } else {
+              _.forOwn(methods, function(methodValue, httpMethod) {
+                  if(!masterPaths[path][httpMethod]){
+                      masterPaths[path][httpMethod] = methodValue
+                  } else {
 
-                    // compare if method differ
-                    const masterPathMethod = JSON.stringify(masterPaths[path][httpMethod])
-                    const newPathMethod = JSON.stringify(methodValue)
+                      // compare if method differ
+                      const masterPathMethod = JSON.stringify(masterPaths[path][httpMethod])
+                      const newPathMethod = JSON.stringify(methodValue)
 
-                    if(masterPathMethod!==newPathMethod){
-                        console.debug('main path method', masterPathMethod)
-                        console.debug('new path method', newPathMethod)
-                        throw new Error(`Paths ${path} ${httpMethod} differ`)
-                    }
+                      if(masterPathMethod!==newPathMethod){
+                          console.debug('main path method', masterPathMethod)
+                          console.debug('new path method', newPathMethod)
+                          throw new Error(`Paths ${path} ${httpMethod} differ`)
+                      }
 
-//                    throw new Error(`Duplicate path ${path} ${httpMethod}`)
-                }
-            });
+  //                    throw new Error(`Duplicate path ${path} ${httpMethod}`)
+                  }
+              });
+          }
         }
     });
 
@@ -94,7 +96,8 @@ function mergeTags(masterTagsList, newTagsList){
                     main: existingTag.description,
                     new: newTagsList[i].description
                 })
-                throw new Error("Tags "+newTagsList[i].name+" differ")
+                // Tollero descrizioni diverse dei tag ... ma uso solo quella del primo file.
+                // throw new Error("Tags "+newTagsList[i].name+" differ")
             }
         }
     }
@@ -105,30 +108,41 @@ function mergeTags(masterTagsList, newTagsList){
 function mergeExternalFilesForBundle(inputFiles, outputFile){
     const fileContent = fs.readFileSync(inputFiles[0], 'utf-8')
 
-    const masterDoc = yaml.load(fileContent);
+    let mergedFileContent;
+    if ( inputFiles.length > 1 ) {
 
-    for(let i=1; i<inputFiles.length; i++){
-        let inputFilePath = inputFiles[i]
-        let mergeDescription = false
-        if(_.isObject(inputFiles[i])){
-            inputFilePath = inputFiles[i].path
-            mergeDescription = inputFiles[i].mergeDescription
-        }
-        const newFileContent = fs.readFileSync(inputFilePath, 'utf-8')
-        const newDoc = yaml.load(newFileContent);
-        masterDoc.paths = deepMergePaths(masterDoc.paths, newDoc.paths)
-        masterDoc.components.parameters = deepMergeComponents(masterDoc.components.parameters, newDoc.components.parameters)        
-        masterDoc.components.schemas = deepMergeComponents(masterDoc.components.schemas, newDoc.components.schemas)    
-        if(newDoc.tags){
-            masterDoc.tags = mergeTags(masterDoc.tags, newDoc.tags)        
-        }    
+      const masterDoc = yaml.load(fileContent);
 
-        if(mergeDescription){
-            masterDoc.description = masterDoc.description + '<br/>' + newDoc.description
-        }
+      for(let i=1; i<inputFiles.length; i++){
+          let inputFilePath = inputFiles[i]
+          let mergeDescription = false
+          if(_.isObject(inputFiles[i])){
+              inputFilePath = inputFiles[i].path
+              mergeDescription = inputFiles[i].mergeDescription
+          }
+          const newFileContent = fs.readFileSync(inputFilePath, 'utf-8')
+          const newDoc = yaml.load(newFileContent);
+          masterDoc.paths = deepMergePaths(masterDoc.paths, newDoc.paths)
+          masterDoc.components.parameters = deepMergeComponents(masterDoc.components.parameters, newDoc.components.parameters)        
+          masterDoc.components.schemas = deepMergeComponents(masterDoc.components.schemas, newDoc.components.schemas)    
+          if(newDoc.tags){
+              masterDoc.tags = mergeTags(masterDoc.tags, newDoc.tags)        
+          }    
+          
+          if(mergeDescription){
+              masterDoc.info.description = masterDoc.info.description + '<br/>\n\n\n' 
+                                        + "# " + newDoc.info.title + "\n\n"
+                                        + newDoc.info.description ;
+          }
+      }
+      mergedFileContent = yaml.dump(masterDoc)
     }
+    else { // - Se il file è uno solo non c'è merge da fare ... quindi evito di parsare il file.
+      mergedFileContent = fileContent
+    }
+    
 
-    fs.writeFileSync(outputFile, yaml.dump(masterDoc))
+    fs.writeFileSync( outputFile, mergedFileContent )
 }
 
 module.exports = {

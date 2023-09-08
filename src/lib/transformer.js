@@ -39,6 +39,7 @@ async function makeBundle(inputFile, outputFile, fromMerge = false, skipLint = f
             console.error(`lint error: ${lintStderr}`);
         }
     }
+    
 }
 
 async function lint(outputFile){
