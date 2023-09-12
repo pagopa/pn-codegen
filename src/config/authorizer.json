@@ -52,25 +52,6 @@
                 }
             }
         },
-        "SERVICEDESK": {
-            "api_key_openapi": {
-                "type": "apiKey",
-                "name": "x-api-key",
-                "in": "header"
-            },
-            "pn-auth-fleet_ServicedeskAuthorizer_openapi": {
-                "type": "apiKey",
-                "name": "Unused",
-                "in": "header",
-                "x-amazon-apigateway-authtype": "custom",
-                "x-amazon-apigateway-authorizer": {
-                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-servicedeskAuthorizerLambda/invocations",
-                    "authorizerResultTtlInSeconds": 300,
-                    "identitySource": "method.request.header.x-api-key",
-                    "type": "request"
-                }
-            }
-        },
         "CN_BE": {
             "api_key_openapi": {
                 "type": "apiKey",
@@ -96,14 +77,6 @@
         "IO": [
             { 
                 "pn-auth-fleet_IoAuthorizer_openapi": [] 
-            },
-            { 
-                "api_key_openapi": [] 
-            }
-        ],
-        "SERVICEDESK": [
-            { 
-                "pn-auth-fleet_ServicedeskAuthorizer_openapi": [] 
             },
             { 
                 "api_key_openapi": [] 
