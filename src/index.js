@@ -4,7 +4,7 @@ const yaml = require('js-yaml')
 const _ = require('lodash')
 
 const { downloadFile } = require('./lib/httpClient')
-const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles, lint } = require('./lib/transformer')
+const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles, lint, applyPatch } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
 const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
@@ -120,7 +120,7 @@ async function main(){
     const config = globalConfig.openapi || [] // openapi codegen rules
 
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles, bundlePatch } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         const bundleInputFiles = []
@@ -163,12 +163,18 @@ async function main(){
               const sourceFile = bundleInputFiles[0]
               const bundleFile = sourceFile.replace('.yaml', '-bundle.yaml')
               await makeBundle( sourceFile, bundleFile, false, true)
+
               await copyYamlFiles(tmpFolder, openapiFolder, [path.basename( bundleFile )])
             }
             else {
               console.log("################# BUNDLE NON GENERATO")
             }
             
+        }
+
+        // la patch viene applicata direttamente nella cartella docs/openapi al termine della copia di tutti i file
+        if(bundlePatch){
+            await applyPatch(openapiFolder, bundlePatch)
         }
 
         if(!skipAWSGeneration){

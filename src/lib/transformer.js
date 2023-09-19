@@ -93,6 +93,18 @@ async function copyYamlFiles(sourceFolder, destFolder, inclusionList = []){
     }
 }
 
+async function applyPatch(baseFolder, patchFile){
+    const command = `(cd ${baseFolder} && git apply ${patchFile} -v)`
+    
+    console.log('applying patch', command)
+    const { stdout, stderr } = await exec(command);
+
+    if (stderr) {
+        console.error(`applying patch error: ${stderr}`);
+    }
+    console.log(`${stdout}`);
+}
+
 module.exports = {
     internalToExternal,
     makeBundle,
@@ -100,5 +112,6 @@ module.exports = {
     removeIntFormat,
     updateIntegerType,
     copyYamlFiles,
-    lint
+    lint,
+    applyPatch
 }
