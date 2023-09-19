@@ -1,5 +1,8 @@
 FROM node:lts-alpine3.17
 
+## Install patch
+RUN apk update && apk add git
+
 # - Install base tools.
 #   This is a time consuming task. I prefer have it as first step to maximize 
 #   docker build cache hits during development
