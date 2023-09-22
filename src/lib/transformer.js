@@ -94,7 +94,7 @@ async function copyYamlFiles(sourceFolder, destFolder, inclusionList = []){
 }
 
 async function applyPatch(baseFolder, patchFile){
-    const command = `(cd ${baseFolder} && git apply ${patchFile} -v)`
+    const command = `(cd microsvc && git apply ${baseFolder.replace('microsvc/','')}/${patchFile} -v)`
     
     console.log('applying patch', command)
     const { stdout, stderr } = await exec(command);
