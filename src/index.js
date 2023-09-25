@@ -118,9 +118,9 @@ async function main(){
     const authorizerConfigContent = fs.readFileSync('src/config/authorizer.json')
     const authorizerConfig = JSON.parse(authorizerConfigContent)
     const config = globalConfig.openapi || [] // openapi codegen rules
-
+    const bundlePatch = globalConfig.bundlePatch
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles, bundlePatch } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         const bundleInputFiles = []
@@ -172,15 +172,16 @@ async function main(){
             
         }
 
-        // la patch viene applicata direttamente nella cartella docs/openapi al termine della copia di tutti i file
-        if(bundlePatch){
-            await applyPatch(openapiFolder, bundlePatch)
-        }
-
         if(!skipAWSGeneration){
             await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
         }
     }
+
+    // la patch viene applicata direttamente nella cartella docs/openapi al termine della copia di tutti i file
+    if(bundlePatch){
+        await applyPatch(openapiFolder, bundlePatch)
+    }
+    
 
     if( globalConfig.openapiBundlePresenceCheck ) {
       checkBundles(openapiFolder, globalConfig.openapiBundlePresenceCheck)
