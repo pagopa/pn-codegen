@@ -52,6 +52,20 @@
                 }
             }
         },
+        "RADD": {
+            "pn-auth-fleet_b2bAuthorizer_openapi": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-b2bAuthorizerLambda/invocations",
+                    "authorizerResultTtlInSeconds": 300,
+                    "identityValidationExpression": "^Bearer\\s([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_\\-]+)$",
+                    "type": "token"
+                }
+            }
+        },
         "CN_BE": {
             "api_key_openapi": {
                 "type": "apiKey",
@@ -74,6 +88,11 @@
                 "pn-auth-fleet_jwtAuthorizer_openapi": [] 
             }
         ],
+        "RADD": [
+            {
+                "pn-auth-fleet_b2bAuthorizer_openapi": [] 
+            }
+        ],
         "IO": [
             { 
                 "pn-auth-fleet_IoAuthorizer_openapi": [] 
@@ -87,5 +106,31 @@
                 "api_key_openapi": [] 
             }
         ]
+    },
+    "mapping": {
+        "default": {
+            "integration.request.header.x-pagopa-pn-cx-id": "context.authorizer.cx_id",
+            "integration.request.header.x-pagopa-pn-cx-role": "context.authorizer.cx_role",
+            "integration.request.header.x-pagopa-pn-uid": "context.authorizer.uid",
+            "integration.request.header.x-pagopa-pn-jti": "context.authorizer.cx_jti",
+            "integration.request.header.x-pagopa-pn-cx-type": "context.authorizer.cx_type",
+            "integration.request.header.x-pagopa-pn-cx-groups": "context.authorizer.cx_groups",
+            "integration.request.header.x-pagopa-pn-src-ch-details": "context.authorizer.sourceChannelDetails"
+        },
+        "B2B": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'B2B'"
+        },
+        "WEB": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'WEB'"
+        },
+        "IO": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'IO'"
+        },
+        "CN_BE": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'CN_BE'"
+        },
+        "RADD": {
+            "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
+        }
     }
 }
