@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const _ = require('lodash')
 const yaml = require('js-yaml')
 
-const { getSecuritySchemeByIntendedUsage, getMethodSecurityItemsByIntendedUsage } = require('./authorizer')
+const { getSecuritySchemeByIntendedUsage, getMethodSecurityItemsByIntendedUsage } = require('./authorizer');
 
 const typeLevelKeepProperties = ['title', 'required', 'description', 'default', 'nullable']
 const notAllowedProperties = ['multipleOf', 'xml']
@@ -28,20 +28,15 @@ function getPathParams(path){
     })
 }
 
-function getRequestParametersByIntendedUsage(intendedUsage, path, options = false){
+function getRequestParametersByIntendedUsage(intendedUsage, path, options = false, authorizerConfig){
     const parameters = {}
 
     if(!options){
-        Object.assign(parameters, {
-            'integration.request.header.x-pagopa-pn-cx-id': "context.authorizer.cx_id",
-            'integration.request.header.x-pagopa-pn-cx-role': "context.authorizer.cx_role",
-            'integration.request.header.x-pagopa-pn-uid': "context.authorizer.uid",
-            'integration.request.header.x-pagopa-pn-jti': "context.authorizer.cx_jti",
-            'integration.request.header.x-pagopa-pn-src-ch': "'"+intendedUsage+"'",
-            'integration.request.header.x-pagopa-pn-cx-type': "context.authorizer.cx_type",
-            'integration.request.header.x-pagopa-pn-cx-groups': "context.authorizer.cx_groups",
-            'integration.request.header.x-pagopa-pn-src-ch-details': "context.authorizer.sourceChannelDetails"
-        });
+        const defaultMapping = authorizerConfig.mapping.default
+        const intendedUsageMapping = authorizerConfig.mapping[intendedUsage]
+        const mapping = _.merge(defaultMapping, intendedUsageMapping)
+
+        Object.assign(parameters, mapping);
     }
 
     const pathParams = getPathParams(path)
@@ -76,7 +71,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                 paths[path][method]['x-amazon-apigateway-integration'] = {
                     uri: integrationUri,
                     httpMethod: "POST",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig),
                     passthroughBehavior: "when_no_match",
                     contentHandling: "CONVERT_TO_TEXT",
                     timeoutInMillis: 29000,
@@ -93,7 +88,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                         uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                         connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                         httpMethod: "ANY",
-                        requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true),
+                        requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig),
                         passthroughBehavior: "when_no_match",
                         connectionType: "VPC_LINK",
                         timeoutInMillis: 29000,
@@ -105,7 +100,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                     uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                     connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                     httpMethod: "ANY",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig),
                     passthroughBehavior: "when_no_match",
                     connectionType: "VPC_LINK",
                     timeoutInMillis: 29000,

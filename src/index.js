@@ -10,13 +10,14 @@ const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
 
 const { terraformGenerator } = require('./lib/infra-tf/index')
+const { B2B, WEB, IO, CN_BE, RADD, BO } = require('./lib/constants')
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
 
 async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
-    if(['B2B', 'WEB', 'IO', 'CN_BE'].indexOf(intendedUsage)<0){
+    if([B2B, WEB, IO, CN_BE, RADD, BO].indexOf(intendedUsage)<0){
         console.error('Intended usage not supported: '+intendedUsage)
         return
     }
