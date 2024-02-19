@@ -62,7 +62,7 @@
                     "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-b2bAuthorizerLambda/invocations",
                     "authorizerResultTtlInSeconds": 300,
                     "identityValidationExpression": "^Bearer\\s([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_]+)\\.([a-zA-Z0-9_\\-]+)$",
-                    "type": "token"
+                    "type": "request"
                 }
             }
         },
