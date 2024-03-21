@@ -76,7 +76,22 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                     contentHandling: "CONVERT_TO_TEXT",
                     timeoutInMillis: 29000,
                     type: "aws_proxy"
-                }    
+                }
+                
+                if(intendedUsage==='WEB'){
+                    paths[path].options = {
+                        operationId: "Options for "+path+" API CORS",
+                        'x-amazon-apigateway-integration': {
+                            uri: integrationUri,
+                            httpMethod: "POST",
+                            requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig),
+                            passthroughBehavior: "when_no_match",
+                            contentHandling: "CONVERT_TO_TEXT",
+                            timeoutInMillis: 29000,
+                            type: "aws_proxy"
+                        }
+                    }
+                }
             } else {
                 const customRewritePath = paths[path][method]['x-pagopa-rewrite-path']
                 const apiPath = customRewritePath?customRewritePath:"${stageVariables.ServiceApiPath}"+path
