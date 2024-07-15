@@ -37,24 +37,24 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
         const mapping = _.merge(defaultMapping, intendedUsageMapping)
 
         Object.assign(parameters, mapping);
+
+        // if pathConfig has header 
+        const throttlingHeaders = ['x-pagopa-pn-custom-throttling-group', 'x-pagopa-pn-custom-throttling-value']
+        
+        // search for pathConfig the whitelistHeaders and set as parameters for the integration
+        for(let i=0; i<throttlingHeaders.length; i++){
+            if(pathConfig[throttlingHeaders[i]]){
+                // if pathConfig starts with method.request then set as is else set in "'"+value+"'"
+                const value = pathConfig[throttlingHeaders[i]].startsWith('method.request')?pathConfig[throttlingHeaders[i]]:"'"+pathConfig[throttlingHeaders[i]]+"'"    
+                parameters['integration.request.header.'+throttlingHeaders[i]] = value
+            }
+        }
     }
 
     const pathParams = getPathParams(path)
     for(let i=0; i<pathParams.length; i++){
         parameters['integration.request.path.'+pathParams[i]] = "method.request.path."+pathParams[i]    
     } 
-
-    // if pathConfig has header 
-    const throttlingHeaders = ['x-pagopa-pn-custom-throttling-group', 'x-pagopa-pn-custom-throttling-value']
-    
-    // search for pathConfig the whitelistHeaders and set as parameters for the integration
-    for(let i=0; i<throttlingHeaders.length; i++){
-        if(pathConfig[throttlingHeaders[i]]){
-            // if pathConfig starts with method.request then set as is else set in "'"+value+"'"
-            const value = pathConfig[throttlingHeaders[i]].startsWith('method.request')?pathConfig[throttlingHeaders[i]]:"'"+pathConfig[throttlingHeaders[i]]+"'"    
-            parameters['integration.request.header.'+throttlingHeaders[i]] = value
-        }
-    }
 
     // nella UI di AWS, l'opzione "Use Proxy Integration" riporta "Requests will be proxied to your VPC Link's endpoint." il che implica il passaggio di tutti i parametri
     // della richiesta originali, inclusi header e query string
@@ -127,7 +127,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                     uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                     connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                     httpMethod: "ANY",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig, paths[path][method]),
                     passthroughBehavior: "when_no_match",
                     connectionType: "VPC_LINK",
                     timeoutInMillis: 29000,
