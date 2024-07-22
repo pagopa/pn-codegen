@@ -8,6 +8,9 @@ const { getSecuritySchemeByIntendedUsage, getMethodSecurityItemsByIntendedUsage 
 const typeLevelKeepProperties = ['title', 'required', 'description', 'default', 'nullable']
 const notAllowedProperties = ['multipleOf', 'xml']
 
+// headers used to control throttling
+const throttlingHeaders = ['x-pagopa-pn-custom-throttling-group', 'x-pagopa-pn-custom-throttling-value']        
+
 function deepObjectMerge(finalPaths, docPaths){
     _.forOwn(docPaths, function(methods, path) {
         if(!finalPaths[path]){
@@ -38,9 +41,6 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
 
         Object.assign(parameters, mapping);
 
-        // if pathConfig has header 
-        const throttlingHeaders = ['x-pagopa-pn-custom-throttling-group', 'x-pagopa-pn-custom-throttling-value']
-        
         // search for pathConfig the whitelistHeaders and set as parameters for the integration
         for(let i=0; i<throttlingHeaders.length; i++){
             if(pathConfig[throttlingHeaders[i]]){
