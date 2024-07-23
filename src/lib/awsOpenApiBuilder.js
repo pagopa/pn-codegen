@@ -8,6 +8,9 @@ const { getSecuritySchemeByIntendedUsage, getMethodSecurityItemsByIntendedUsage 
 const typeLevelKeepProperties = ['title', 'required', 'description', 'default', 'nullable']
 const notAllowedProperties = ['multipleOf', 'xml']
 
+// headers used to control throttling
+const throttlingHeaders = ['x-pagopa-pn-custom-throttling-group', 'x-pagopa-pn-custom-throttling-value']        
+
 function deepObjectMerge(finalPaths, docPaths){
     _.forOwn(docPaths, function(methods, path) {
         if(!finalPaths[path]){
@@ -28,7 +31,7 @@ function getPathParams(path){
     })
 }
 
-function getRequestParametersByIntendedUsage(intendedUsage, path, options = false, authorizerConfig){
+function getRequestParametersByIntendedUsage(intendedUsage, path, options = false, authorizerConfig, pathConfig = {}){
     const parameters = {}
 
     if(!options){
@@ -37,6 +40,15 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
         const mapping = _.merge(defaultMapping, intendedUsageMapping)
 
         Object.assign(parameters, mapping);
+
+        // search for pathConfig the whitelistHeaders and set as parameters for the integration
+        for(let i=0; i<throttlingHeaders.length; i++){
+            if(pathConfig[throttlingHeaders[i]]){
+                // if pathConfig starts with method.request then set as is else set in "'"+value+"'"
+                const value = pathConfig[throttlingHeaders[i]].startsWith('method.request')?pathConfig[throttlingHeaders[i]]:"'"+pathConfig[throttlingHeaders[i]]+"'"    
+                parameters['integration.request.header.'+throttlingHeaders[i]] = value
+            }
+        }
     }
 
     const pathParams = getPathParams(path)
@@ -71,7 +83,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                 paths[path][method]['x-amazon-apigateway-integration'] = {
                     uri: integrationUri,
                     httpMethod: "POST",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig, paths[path][method]),
                     passthroughBehavior: "when_no_match",
                     contentHandling: "CONVERT_TO_TEXT",
                     timeoutInMillis: 29000,
@@ -84,7 +96,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                         'x-amazon-apigateway-integration': {
                             uri: integrationUri,
                             httpMethod: "POST",
-                            requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig),
+                            requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig, paths[path][method]),
                             passthroughBehavior: "when_no_match",
                             contentHandling: "CONVERT_TO_TEXT",
                             timeoutInMillis: 29000,
@@ -103,7 +115,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                         uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                         connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                         httpMethod: "ANY",
-                        requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig),
+                        requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, true, authorizerConfig, paths[path][method]),
                         passthroughBehavior: "when_no_match",
                         connectionType: "VPC_LINK",
                         timeoutInMillis: 29000,
@@ -115,7 +127,7 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                     uri: "http://${stageVariables.ApplicationLoadBalancerDomain}:8080/"+apiPath,
                     connectionId: "${stageVariables.NetworkLoadBalancerLink}",
                     httpMethod: "ANY",
-                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig),
+                    requestParameters: getRequestParametersByIntendedUsage(intendedUsage, path, false, authorizerConfig, paths[path][method]),
                     passthroughBehavior: "when_no_match",
                     connectionType: "VPC_LINK",
                     timeoutInMillis: 29000,
