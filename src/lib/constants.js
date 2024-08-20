@@ -10,11 +10,14 @@ const CN_BE = 'CN_BE'
 
 const BO = 'BO'
 
+const B2BPG = 'B2BPG'
+
 module.exports = {
     RADD,
     B2B,
     IO,
     WEB,
     CN_BE,
-    BO
+    BO,
+    B2BPG
 }
