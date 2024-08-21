@@ -152,7 +152,7 @@
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
         },
         "B2BPG": {
-            "integration.request.header.x-pagopa-pn-src-ch": "B2BPG"
+            "integration.request.header.x-pagopa-pn-src-ch": "'B2BPG'"
         }
     }
 }
