@@ -66,6 +66,20 @@
                 }
             }
         },
+        "B2BPG": {
+            "pn-auth-fleet_b2bAuthorizer_openapi": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-b2bAuthorizerLambda/invocations",
+                    "authorizerResultTtlInSeconds": 60,
+                    "identitySource": "method.request.header.Authorization",
+                    "type": "request"
+                }
+            }
+        },
         "CN_BE": {
             "api_key_openapi": {
                 "type": "apiKey",
@@ -101,6 +115,11 @@
                 "api_key_openapi": [] 
             }
         ],
+        "B2BPG": [
+            {
+                "pn-auth-fleet_b2bAuthorizer_openapi": [] 
+            }
+        ],
         "CN_BE": [
             { 
                 "api_key_openapi": [] 
@@ -130,6 +149,9 @@
             "integration.request.header.x-pagopa-pn-src-ch": "'CN_BE'"
         },
         "RADD": {
+            "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
+        },
+        "B2BPG": {
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
         }
     }

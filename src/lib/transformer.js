@@ -22,7 +22,7 @@ async function makeBundle(inputFile, outputFile, fromMerge = false, skipLint = f
     }
 
     const redoclyCommand = `redocly bundle ${inputFile} ${options.join(' ')} --output ${outputFile}`
-    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${outputFile}`
+    const lintCommand = `spectral lint -r https://github.com/italia/api-oas-checker-rules/releases/download/1.1/spectral.yml ${outputFile}`
 
     console.log(redoclyCommand)
     const { stdout, stderr } = await exec(redoclyCommand);
@@ -43,7 +43,7 @@ async function makeBundle(inputFile, outputFile, fromMerge = false, skipLint = f
 }
 
 async function lint(outputFile){
-    const lintCommand = `spectral lint -r https://italia.github.io/api-oas-checker/spectral.yml ${outputFile}`
+    const lintCommand = `spectral lint -r https://github.com/italia/api-oas-checker-rules/releases/download/1.1/spectral.yml ${outputFile}`
 
     console.log(lintCommand)
     const { lintStdout, lintStderr } = await exec(lintCommand);
