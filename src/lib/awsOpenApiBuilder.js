@@ -241,7 +241,7 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
                     'gatewayresponse.header.Access-Control-Allow-Origin': "'*'"   
                 },
                 responseTemplates: {         
-                    'application/json': "{\"status\": 400, \"title\": \"VALIDATION ERROR\", \"traceId\": \"$context.xrayTraceId\", \"errors\": [ { \"code\": \"PN_INVALID_BODY\", \"detail\": \"Validation errors: $context.error.validationErrorString\" } ]}"
+                    'application/json': "{\"status\": 400, \"title\": \"VALIDATION ERROR\", \"traceId\": \"$method.request.header.X-Amzn-Trace-Id\", \"errors\": [ { \"code\": \"PN_INVALID_BODY\", \"detail\": \"Validation errors: $context.error.validationErrorString\" } ]}"
                 }
             }
         },
