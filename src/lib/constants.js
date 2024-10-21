@@ -12,6 +12,8 @@ const BO = 'BO'
 
 const B2BPG = 'B2BPG'
 
+const PUBLIC = 'PUBLIC'
+
 module.exports = {
     RADD,
     B2B,
@@ -19,5 +21,6 @@ module.exports = {
     WEB,
     CN_BE,
     BO,
-    B2BPG
+    B2BPG,
+    PUBLIC
 }
