@@ -6,8 +6,15 @@ function filterApiDocByPath(paths, servicePaths){
     let finalPaths = {}
     for(let i=0; i<servicePaths.length; i++){
         const regexp = new RegExp('^/'+servicePaths[i]+'(\/.*)?$');
-        finalPaths = _.merge(finalPaths, Object.fromEntries(Object.entries(paths).filter(([key]) => regexp.test(key))));
+        finalPaths = _.merge(finalPaths, Object.fromEntries(Object.entries(paths).filter(([key]) => {
+            if(!servicePaths[i]){
+                return true
+            }
+
+            return regexp.test(key)
+        })));
     }
+
     return finalPaths;
 }
 

@@ -1,5 +1,8 @@
 {
     "securitySchemes": {
+        "PUBLIC": {
+
+        },
         "B2B": {
             "api_key_openapi": {
                 "type": "apiKey",
@@ -147,6 +150,9 @@
         },
         "CN_BE": {
             "integration.request.header.x-pagopa-pn-src-ch": "'CN_BE'"
+        },
+        "PUBLIC": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'PUBLIC'"
         },
         "RADD": {
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
