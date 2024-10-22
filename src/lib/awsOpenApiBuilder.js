@@ -104,6 +104,10 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                         }
                     }
                 }
+
+                if(paths[path][method]['x-api-cachekey-parameters']){
+                    paths[path][method]['x-amazon-apigateway-integration']['cacheKeyParameters'] = paths[path][method]['x-api-cachekey-parameters']
+                }
             } else {
                 const customRewritePath = paths[path][method]['x-pagopa-rewrite-path']
                 const apiPath = customRewritePath?customRewritePath:"${stageVariables.ServiceApiPath}"+path
@@ -133,6 +137,11 @@ function enrichPaths(paths, intendedUsage, authorizerConfig){
                     timeoutInMillis: 29000,
                     type: "http_proxy"
                 }    
+
+
+                if(paths[path][method]['x-api-cachekey-parameters']){
+                    paths[path][method]['x-amazon-apigateway-integration']['cacheKeyParameters'] = paths[path][method]['x-api-cachekey-parameters']
+                }
             }
 
             if(!paths[path][method].parameters){
