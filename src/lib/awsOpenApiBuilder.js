@@ -31,6 +31,16 @@ function getPathParams(path){
     })
 }
 
+function isApplicativeThrottlingValue(value) {
+    const allowedPrefixes = ['method.request', 'context.authorizer'];
+    for (let i = 0; i < allowedPrefixes.length; i++) {
+        if (value.startsWith(allowedPrefixes[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function getRequestParametersByIntendedUsage(intendedUsage, path, options = false, authorizerConfig, pathConfig = {}){
     const parameters = {}
 
@@ -44,8 +54,9 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
         // search for pathConfig the whitelistHeaders and set as parameters for the integration
         for(let i=0; i<throttlingHeaders.length; i++){
             if(pathConfig[throttlingHeaders[i]]){
-                // if pathConfig starts with method.request then set as is else set in "'"+value+"'"
-                const value = pathConfig[throttlingHeaders[i]].startsWith('method.request')?pathConfig[throttlingHeaders[i]]:"'"+pathConfig[throttlingHeaders[i]]+"'"    
+                const value = isApplicativeThrottlingValue(pathConfig[throttlingHeaders[i]]) ?
+                    pathConfig[throttlingHeaders[i]] :
+                    "'"+pathConfig[throttlingHeaders[i]]+"'"    
                 parameters['integration.request.header.'+throttlingHeaders[i]] = value
             }
         }
