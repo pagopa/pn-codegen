@@ -1,6 +1,7 @@
 const path = require("node:path")
 const { writeFile } = require("node:fs/promises");
 const { loadConfiguration } = require( "./ConfigHolder" )
+const { formatParamValue } = require("./terraformValueFormatter")
 
 async function terraformGenerator( tfGeneratorConfig, prj_path ) {
   
@@ -69,8 +70,8 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
     const params_map = configs.getGenericParams( env_account_code, env_code )
     for( let key in params_map ) {
       terraform_file_content += `
-        ${toTfSymbol(key)} = "${params_map[key]}"`
-    }
+        ${toTfSymbol(key)} = ${formatParamValue(params_map[key])}`
+    }  
   }
 
 
