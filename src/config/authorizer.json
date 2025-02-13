@@ -143,7 +143,7 @@
             "integration.request.header.x-pagopa-pn-src-ch": "'B2B'"
         },
         "WEB": {
-            "integration.request.header.x-pagopa-pn-src-ch": "'WEB'"
+            "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
         },
         "IO": {
             "integration.request.header.x-pagopa-pn-src-ch": "'IO'"
