@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.17
+FROM public.ecr.aws/docker/library/node:lts-alpine3.17
 
 ## Install patch
 RUN apk update && apk add git
