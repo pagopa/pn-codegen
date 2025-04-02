@@ -282,6 +282,14 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
         ['BAD_REQUEST_PARAMETERS', 'BAD_REQUEST_BODY'].forEach(key => {
             if (finalDoc['x-amazon-apigateway-gateway-responses'][key]) {
                 finalDoc['x-amazon-apigateway-gateway-responses'][key].responseParameters['gatewayresponse.header.Access-Control-Expose-Headers'] = "'x-amzn-trace-id'";
+                finalDoc['x-amazon-apigateway-gateway-responses'][key].responseParameters['gatewayresponse.header.Strict-Transport-Security'] = "'max-age=31536000; includeSubDomains; preload'"
+
+            }
+        });
+
+        ['DEFAULT_5XX', 'DEFAULT_4XX'].forEach(key => {
+            if (finalDoc['x-amazon-apigateway-gateway-responses'][key]) {
+                finalDoc['x-amazon-apigateway-gateway-responses'][key].responseParameters['gatewayresponse.header.Strict-Transport-Security'] = "'max-age=31536000; includeSubDomains; preload'"
             }
         });
     }
