@@ -278,7 +278,7 @@ async function buildAWSOpenApiFile(files, outputFile, intendedUsage, authorizerC
         "x-amazon-apigateway-request-validator" : "basic" // validate parameters and body for all requests
     }
     
-    if (intendedUsage === 'WEB') {
+    if (intendedUsage === 'WEB' || intendedUsage === 'BO') {
         ['BAD_REQUEST_PARAMETERS', 'BAD_REQUEST_BODY'].forEach(key => {
             if (finalDoc['x-amazon-apigateway-gateway-responses'][key]) {
                 finalDoc['x-amazon-apigateway-gateway-responses'][key].responseParameters['gatewayresponse.header.Access-Control-Expose-Headers'] = "'x-amzn-trace-id'";
