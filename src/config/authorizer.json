@@ -89,6 +89,19 @@
                 "name": "x-api-key",
                 "in": "header"
             }
+        },
+        "BO": {
+            "pn-auth-fleet_backofficeAuthorizer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "custom",
+                "x-amazon-apigateway-authorizer": {
+                    "authorizerUri": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-backofficeAuthorizerLambda/invocations",
+                    "authorizerResultTtlInSeconds": 300,
+                    "type": "token"
+                }
+            }
         }
     },
     "methodSecurity": {
@@ -127,6 +140,11 @@
             { 
                 "api_key_openapi": [] 
             }
+        ],
+        "BO": [
+            { 
+                "pn-auth-fleet_backofficeAuthorizer": [] 
+            }
         ]
     },
     "mapping": {
@@ -159,6 +177,9 @@
         },
         "B2BPG": {
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
+        },
+        "BO": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'BACKOFFICE'"
         }
     }
 }
