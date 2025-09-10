@@ -117,11 +117,19 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
     terraform_file_content += "\n\n"
   }
 
-  // - The terraform tfvars destination file is better without indentation
+  // - The terraform tfvars destination file is better without indentation 
+  // - EXCEPT for JSON objects which need proper formatting
   terraform_file_content = terraform_file_content
-    .replace(/^        /gm, '')
-    .replace(/^      /gm, '')
-    .replace(/^    /gm, '');
+    .split('\n')
+    .map(line => {
+      // Preserve indentation for JSON object lines (any line with JSON-like content)
+      if (line.match(/^\s*["{}[\]]/) || line.match(/^\s*".*":\s*/) || line.match(/^\s*[}\]]\s*[,}]?\s*$/)) {
+        return line; // Keep original indentation for JSON lines
+      }
+      // Remove indentation for regular terraform lines
+      return line.replace(/^        /, '').replace(/^      /, '').replace(/^    /, '');
+    })
+    .join('\n');
   
   console.log( "Write " + output_path )
   await writeFile( output_path, terraform_file_content, { encoding: "utf-8"});
@@ -130,4 +138,3 @@ async function generateEnv( configs /*: ConfigHolder */, account_code /*: string
 module.exports = {
   terraformGenerator
 }
-

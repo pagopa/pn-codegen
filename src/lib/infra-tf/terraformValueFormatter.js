@@ -12,11 +12,14 @@ function formatParamValue(value) {
     if (value === null || value === undefined) {
         return null;
     }
-
-    if (Array.isArray(value) || typeof value === "object") {
+    if (Array.isArray(value)) {
+        // Keep arrays compact
         return JSON.stringify(value);
     }
-
+    if (typeof value === "object") {
+        // Use pretty-printing only for objects to make them readable
+        return JSON.stringify(value, null, 2);
+    }
     switch (typeof value) {
         case "string":
             return `"${value}"`;
@@ -27,7 +30,6 @@ function formatParamValue(value) {
             return `"${value}"`;
     }
 }
-
 module.exports = {
     formatParamValue
 }
