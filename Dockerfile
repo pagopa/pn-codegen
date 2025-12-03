@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:lts-alpine3.17
+FROM public.ecr.aws/docker/library/node:lts-alpine3.17@sha256:984d5610f7f2440171e01a6cf2619ead898fe8908827dab10d331da174dc8e53
 
 ## Install patch
 RUN apk update && apk add git
