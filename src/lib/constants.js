@@ -14,10 +14,13 @@ const B2BPG = 'B2BPG'
 
 const PUBLIC = 'PUBLIC'
 
+const IOL = 'IOL'
+
 module.exports = {
     RADD,
     B2B,
     IO,
+    IOL,
     WEB,
     CN_BE,
     BO,
