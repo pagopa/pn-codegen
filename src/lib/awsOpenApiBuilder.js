@@ -45,8 +45,9 @@ function getRequestParametersByIntendedUsage(intendedUsage, path, options = fals
     const parameters = {}
 
     if(!options){
-        const defaultMapping = authorizerConfig.mapping.default
-        const intendedUsageMapping = authorizerConfig.mapping[intendedUsage]
+        const defaultMapping = Object.assign({}, authorizerConfig.mapping.default)
+        const intendedUsageMapping = Object.assign({}, authorizerConfig.mapping[intendedUsage])
+
         const mapping = _.merge(defaultMapping, intendedUsageMapping)
 
         Object.assign(parameters, mapping);

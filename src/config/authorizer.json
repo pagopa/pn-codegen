@@ -193,6 +193,12 @@
         "IO": {
             "integration.request.header.x-pagopa-pn-src-ch": "'IO'"
         },
+        "IOL": {
+            "integration.request.header.x-pagopa-pn-src-ch": "'IO'",
+            "integration.request.header.x-pagopa-pn-name": "context.authorizer.name",
+            "integration.request.header.x-pagopa-pn-family-name": "context.authorizer.familyName",
+            "integration.request.header.x-pagopa-pn-result-code": "context.authorizer.resultCode"
+        },
         "CN_BE": {
             "integration.request.header.x-pagopa-pn-src-ch": "'CN_BE'"
         },
@@ -207,12 +213,6 @@
         },
         "BO": {
             "integration.request.header.x-pagopa-pn-src-ch": "'BACKOFFICE'"
-        },
-        "IOL": {
-            "integration.request.header.x-pagopa-pn-src-ch": "'IO'",
-            "integration.request.header.x-pagopa-pn-name": "context.authorizer.name",
-            "integration.request.header.x-pagopa-pn-family-name": "context.authorizer.familyName",
-            "integration.request.header.x-pagopa-pn-result-code": "context.authorizer.resultCode"
         }
     }
 }
