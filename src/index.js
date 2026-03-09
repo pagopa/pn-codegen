@@ -10,14 +10,14 @@ const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
 
 const { terraformGenerator } = require('./lib/infra-tf/index')
-const { B2B, WEB, IO, CN_BE, RADD, BO, B2BPG, PUBLIC } = require('./lib/constants')
+const { B2B, WEB, IO, IOL, CN_BE, RADD, BO, B2BPG, PUBLIC } = require('./lib/constants')
 
 const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
 
 async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
-    if([B2B, WEB, IO, CN_BE, RADD, BO, B2BPG, PUBLIC].indexOf(intendedUsage)<0){
+    if([B2B, WEB, IO, CN_BE, RADD, IOL, BO, B2BPG, PUBLIC].indexOf(intendedUsage)<0){
         console.error('Intended usage not supported: '+intendedUsage)
         return
     }
@@ -45,7 +45,8 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
     }
 
     fs.mkdirSync(openapiFolder+'/aws', { recursive: true })
-    const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsage}-aws.yaml`
+    const intendedUsageFinal = intendedUsage==='IOL' ? 'IO' : intendedUsage
+    const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsageFinal}-aws.yaml`
     await buildAWSOpenApiFile(mergedOpenApiFiles, outputFilePath, intendedUsage, authorizerConfig)
     await removeIntFormat(outputFilePath)
     await updateIntegerType(outputFilePath)
