@@ -207,7 +207,7 @@
         },
         "RADD": {
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel",
-            "integration.request.header.x-pagopa-pn-original-base-url": "context.authorizer.originalBaseUrl"
+            "integration.request.header.x-pagopa-pn-base-url": "context.authorizer.baseUrl"
         },
         "B2BPG": {
             "integration.request.header.x-pagopa-pn-src-ch": "context.authorizer.sourceChannel"
