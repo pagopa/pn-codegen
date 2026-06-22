@@ -16,7 +16,7 @@ const openapiFolder = 'microsvc/docs/openapi'
 const configFilePath = 'microsvc/codegen/config.json'
 const tmpFolder = '/tmp/openapi'
 
-async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig){
+async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizerConfig, awsApiDiscriminator ){
     if([B2B, WEB, IO, CN_BE, RADD, IOL, BO, B2BPG, PUBLIC].indexOf(intendedUsage)<0){
         console.error('Intended usage not supported: '+intendedUsage)
         return
@@ -45,8 +45,9 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
     }
 
     fs.mkdirSync(openapiFolder+'/aws', { recursive: true })
+    const awsApiDiscriminatorValue = (awsApiDiscriminator != null && awsApiDiscriminator !== "" ? awsApiDiscriminator + "-" : "")
     const intendedUsageFinal = intendedUsage==='IOL' ? 'IO' : intendedUsage
-    const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsageFinal}-aws.yaml`
+    const outputFilePath = openapiFolder+`/aws/api-${servicePath}-${intendedUsageFinal}-${awsApiDiscriminatorValue}aws.yaml`
     await buildAWSOpenApiFile(mergedOpenApiFiles, outputFilePath, intendedUsage, authorizerConfig)
     await removeIntFormat(outputFilePath)
     await updateIntegerType(outputFilePath)
@@ -122,7 +123,7 @@ async function main(){
     const config = globalConfig.openapi || [] // openapi codegen rules
     const bundlePatch = globalConfig.bundlePatch
     for(let i=0; i<config.length; i++){
-        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles } = config[i]
+        const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles, awsApiDiscriminator  } = config[i]
         const openExternalFiles = []
         console.log(config[i])
         const bundleInputFiles = []
@@ -175,7 +176,7 @@ async function main(){
         }
 
         if(!skipAWSGeneration){
-            await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig)
+            await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig, awsApiDiscriminator )
         }
     }
 
