@@ -84,12 +84,20 @@ function generatePolicies(openapiFiles, outputDir) {
         fs.writeFileSync(file, JSON.stringify(policy, null, 2) + '\n')
         console.log(`Generated ${file} (${policy.policyDocument.Statement[0].Resource.length} resources)`)
     }
+    removeObsoletePolicies(outputDir, files)
+}
+
+function removeObsoletePolicies(outputDir, currentFiles = new Set()) {
+    if (!fs.existsSync(outputDir)) {
+        console.log(`No generated policy directory to clean: ${outputDir}`)
+        return
+    }
     for (const file of fs.readdirSync(outputDir)) {
-        if (/^(pa|pg|pf|bs|pt)Policy\.json$/.test(file) && !files.has(file)) {
+        if (/^(pa|pg|pf|bs|pt)Policy\.json$/.test(file) && !currentFiles.has(file)) {
             fs.unlinkSync(path.join(outputDir, file))
             console.log(`Removed obsolete generated policy ${path.join(outputDir, file)}`)
         }
     }
 }
 
-module.exports = { isPolicyGenerationEnabled, buildPolicies, generatePolicies }
+module.exports = { isPolicyGenerationEnabled, buildPolicies, generatePolicies, removeObsoletePolicies }

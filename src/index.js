@@ -6,7 +6,7 @@ const _ = require('lodash')
 const { downloadFile } = require('./lib/httpClient')
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles, lint, applyPatch } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
-const { isPolicyGenerationEnabled, generatePolicies } = require('./lib/policyGenerator')
+const { isPolicyGenerationEnabled, generatePolicies, removeObsoletePolicies } = require('./lib/policyGenerator')
 const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
 
@@ -195,6 +195,8 @@ async function main(){
 
     if (policyFiles.length > 0) {
         generatePolicies(policyFiles, path.join(openapiFolder, 'policies/generated'))
+    } else if (config.some(rule => rule.generatePolicies === false)) {
+        removeObsoletePolicies(path.join(openapiFolder, 'policies/generated'))
     }
     
 

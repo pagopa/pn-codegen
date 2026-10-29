@@ -4,7 +4,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const { spawnSync } = require('child_process')
-const { buildPolicies, generatePolicies, isPolicyGenerationEnabled } = require('../lib/policyGenerator')
+const { buildPolicies, generatePolicies, isPolicyGenerationEnabled, removeObsoletePolicies } = require('../lib/policyGenerator')
 
 const prefix = 'arn:aws:execute-api:{region}:{awsAccountId}:{restApiId}/{stage}'
 const operation = types => ({ 'x-pn-allowed-cx-types': types })
@@ -142,4 +142,31 @@ test('invalid input terminates a Node process with a visible error and nonzero e
     assert.equal(result.status, 1)
     assert.match(result.stderr, /Unknown cx_type "UNKNOWN" on GET \/v1\/items/)
     assert.equal(fs.existsSync(output), false)
+})
+
+test('explicit cleanup removes only generated policy files and preserves unrelated content', t => {
+    const { file, output, write } = fixture(t)
+    write(['PA', 'PG', 'PF', 'BS', 'PT'])
+    generatePolicies([file], output)
+    fs.writeFileSync(path.join(output, 'notes.json'), 'preserve')
+    fs.mkdirSync(path.join(output, 'other'))
+    fs.writeFileSync(path.join(output, 'other', 'paPolicy.json'), 'preserve nested file')
+    removeObsoletePolicies(output)
+    assert.deepEqual(fs.readdirSync(output).sort(), ['notes.json', 'other'])
+    assert.equal(fs.readFileSync(path.join(output, 'notes.json'), 'utf8'), 'preserve')
+    assert.equal(fs.readFileSync(path.join(output, 'other', 'paPolicy.json'), 'utf8'), 'preserve nested file')
+    removeObsoletePolicies(output)
+    assert.deepEqual(fs.readdirSync(output).sort(), ['notes.json', 'other'])
+})
+
+test('cleanup handles a missing directory without creating it', t => {
+    const { output } = fixture(t)
+    removeObsoletePolicies(output)
+    assert.equal(fs.existsSync(output), false)
+})
+
+test('cleanup surfaces filesystem errors', t => {
+    const { output } = fixture(t)
+    fs.mkdirSync(path.join(output, 'paPolicy.json'), { recursive: true })
+    assert.throws(() => removeObsoletePolicies(output), /EISDIR|EPERM/)
 })

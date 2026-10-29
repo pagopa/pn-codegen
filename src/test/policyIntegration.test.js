@@ -60,6 +60,10 @@ function harness(config, { patch, cli = false } = {}) {
         './lib/infra-tf/index': { terraformGenerator: async () => {} },
         './lib/policyGenerator': {
             ...generator,
+            removeObsoletePolicies(output) {
+                events.push('cleanup')
+                harnessResult.cleanupOutput = output
+            },
             generatePolicies(inputs, output) {
                 events.push('policies')
                 harnessResult.output = output
@@ -102,16 +106,56 @@ test('enabled WEB rule uses generated, prefix-free AWS after patches; PUBLIC sta
     assert.deepEqual(Object.keys(result.policies), ['PA', 'PF'])
     assert.match(result.policies.PA.policyDocument.Statement[0].Resource[0], /\/GET\/v1\/items\/\*$/)
     assert.ok(result.events.indexOf('patch') < result.events.indexOf('policies'))
+    assert.equal(result.events.includes('cleanup'), false)
     assert.equal(result.errors.length, 0)
 })
 
-test('false or absent flag leaves normal AWS generation unchanged and skips policy generation', async () => {
-    for (const generatePolicies of [false, undefined]) {
-        const result = harness({ openapi: [rule({ generatePolicies })] })
+test('explicit false cleans generated policies after AWS generation and patches', async () => {
+    const result = harness({ openapi: [rule({ generatePolicies: false })], bundlePatch: 'example.patch' })
+    await result.module.exports.main()
+    assert.ok(result.events.some(event => event.startsWith('aws:')))
+    assert.equal(result.events.includes('policies'), false)
+    assert.equal(result.cleanupOutput, 'microsvc/docs/openapi/policies/generated')
+    assert.ok(result.events.indexOf('patch') < result.events.indexOf('cleanup'))
+})
+
+test('absent flag leaves AWS generation unchanged and neither writes nor removes policies', async () => {
+    const result = harness({ openapi: [rule({ generatePolicies: undefined })] })
+    await result.module.exports.main()
+    assert.ok(result.events.some(event => event.startsWith('aws:')))
+    assert.equal(result.events.includes('policies'), false)
+    assert.equal(result.events.includes('cleanup'), false)
+})
+
+test('multiple false rules clean once even when AWS generation is skipped', async () => {
+    const result = harness({ openapi: [
+        rule({ generatePolicies: false, skipAWSGeneration: true }),
+        rule({ generatePolicies: false, skipAWSGeneration: true })
+    ] })
+    await result.module.exports.main()
+    assert.equal(result.events.filter(event => event === 'cleanup').length, 1)
+    assert.equal(result.events.some(event => event.startsWith('aws:')), false)
+})
+
+test('an enabled rule takes precedence over cleanup regardless of configuration order', async () => {
+    for (const rules of [
+        [rule({ generatePolicies: false }), rule()],
+        [rule(), rule({ generatePolicies: false })]
+    ]) {
+        const result = harness({ openapi: rules })
         await result.module.exports.main()
-        assert.ok(result.events.some(event => event.startsWith('aws:')))
-        assert.equal(result.events.includes('policies'), false)
+        assert.equal(result.events.filter(event => event === 'policies').length, 1)
+        assert.equal(result.events.includes('cleanup'), false)
+        assert.deepEqual(Object.keys(result.policies), ['PA'])
     }
+})
+
+test('a failed patch does not delete existing policies', async () => {
+    const result = harness({ openapi: [rule({ generatePolicies: false })], bundlePatch: 'bad.patch' }, {
+        patch() { throw new Error('Patch failed') }
+    })
+    await assert.rejects(result.module.exports.main(), /Patch failed/)
+    assert.equal(result.events.includes('cleanup'), false)
 })
 
 test('enabled rules are aggregated once, including intended usage filename normalization', async () => {
