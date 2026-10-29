@@ -79,7 +79,7 @@ function harness(config, { patch, cli = false } = {}) {
     localRequire.main = cli ? module : {}
     const harnessResult = { files, events, errors, process: {}, module }
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../index.js'), 'utf8'), {
-        require: localRequire, module,
+        require: localRequire, module, Error,
         console: { log() {}, debug() {}, error: (...args) => errors.push(args.map(String).join(' ')) },
         process: harnessResult.process
     }, { filename: 'index.js' })
@@ -195,4 +195,42 @@ test('CLI reports policy errors and exits nonzero rather than logging done', asy
     assert.equal(result.process.exitCode, 1)
     assert.equal(result.errors.length, 1)
     assert.match(result.errors[0], /Code generation failed:.*Unknown cx_type/)
+})
+
+test('CLI neutralizes CR/LF from YAML errors while preserving stack and failure status', async () => {
+    const result = harness({ openapi: [rule()], bundlePatch: 'invalid.patch' }, {
+        cli: true,
+        patch(files) {
+            const file = 'microsvc/docs/openapi/aws/api-bff-WEB-aws.yaml'
+            files.set(file, yaml.dump({ paths: {
+                '/test': { get: tagged(['UNKNOWN\r\n[INFO] forged entry\nanother entry']) }
+            } }))
+        }
+    })
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(result.process.exitCode, 1)
+    assert.equal(result.errors.length, 1)
+    assert.doesNotMatch(result.errors[0], /[\r\n]/)
+    assert.match(result.errors[0], /Code generation failed:.*Unknown cx_type/)
+    assert.match(result.errors[0], /forged entry/)
+    assert.match(result.errors[0], /at (?:Object\.)?buildPolicies/)
+})
+
+test('CLI sanitizes non-Error rejections and errors without a stack', async () => {
+    const noStack = new Error('Failure\r\nwithout stack')
+    noStack.stack = undefined
+    for (const rejection of ['Failure\r\n[INFO] forged entry', null, undefined, noStack]) {
+        const result = harness({ openapi: [rule()], bundlePatch: 'invalid.patch' }, {
+            cli: true,
+            patch() { throw rejection }
+        })
+        await new Promise(resolve => setImmediate(resolve))
+        assert.equal(result.process.exitCode, 1)
+        assert.equal(result.errors.length, 1)
+        assert.doesNotMatch(result.errors[0], /[\r\n]/)
+        assert.match(result.errors[0], /Code generation failed:/)
+        if (rejection === noStack) {
+            assert.match(result.errors[0], /Failure.*without stack/)
+        }
+    }
 })

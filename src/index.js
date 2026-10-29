@@ -213,7 +213,8 @@ if (require.main === module) {
     main().then(function(){
         console.log('done')
     }).catch(function(error){
-        console.error('Code generation failed:', error)
+        const details = error instanceof Error ? error.stack || error.message : String(error)
+        console.error('Code generation failed:', details.replace(/[\r\n]/g, ' '))
         process.exitCode = 1
     })
 }
