@@ -20,6 +20,7 @@ RUN cd /usr/local/app/src && npm install
 
 # - Copy application code.
 COPY ./src /usr/local/app/src
+RUN cd /usr/local/app/src && npm test
 
 # - Changes to entrypoint.sh are infrequent but related docker build operations 
 #   are very quick
