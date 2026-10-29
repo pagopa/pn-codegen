@@ -214,7 +214,7 @@ if (require.main === module) {
         console.log('done')
     }).catch(function(error){
         const details = error instanceof Error ? error.stack || error.message : String(error)
-        console.error('Code generation failed:', details.replace(/[\r\n]/g, ' '))
+        console.error('Code generation failed:', details.replace(/\n|\r/g, ''))
         process.exitCode = 1
     })
 }

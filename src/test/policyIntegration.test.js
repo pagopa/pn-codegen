@@ -212,7 +212,7 @@ test('CLI neutralizes CR/LF from YAML errors while preserving stack and failure 
     assert.equal(result.errors.length, 1)
     assert.doesNotMatch(result.errors[0], /[\r\n]/)
     assert.match(result.errors[0], /Code generation failed:.*Unknown cx_type/)
-    assert.match(result.errors[0], /forged entry/)
+    assert.match(result.errors[0], /UNKNOWN\[INFO\] forged entryanother entry/)
     assert.match(result.errors[0], /at (?:Object\.)?buildPolicies/)
 })
 
@@ -230,7 +230,9 @@ test('CLI sanitizes non-Error rejections and errors without a stack', async () =
         assert.doesNotMatch(result.errors[0], /[\r\n]/)
         assert.match(result.errors[0], /Code generation failed:/)
         if (rejection === noStack) {
-            assert.match(result.errors[0], /Failure.*without stack/)
+            assert.equal(result.errors[0], 'Code generation failed: Failurewithout stack')
+        } else {
+            assert.equal(result.errors[0], `Code generation failed: ${String(rejection).replace(/\n|\r/g, '')}`)
         }
     }
 })
