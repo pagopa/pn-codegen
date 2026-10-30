@@ -6,6 +6,7 @@ const _ = require('lodash')
 const { downloadFile } = require('./lib/httpClient')
 const { internalToExternal, makeBundle, mergeYaml, removeIntFormat, updateIntegerType, copyYamlFiles, lint, applyPatch } = require('./lib/transformer')
 const { buildAWSOpenApiFile } = require('./lib/awsOpenApiBuilder')
+const { isPolicyGenerationEnabled, generatePolicies, removeObsoletePolicies } = require('./lib/policyGenerator')
 const { checkBundles }  = require('./lib/bundleChecker')
 const { filterApiDocByPath, removePathPrefix, createFilteredOpenApi, mergeExternalFilesForBundle, removeSchemasPrefixFromFile } = require('./lib/yamlUtils')
 
@@ -51,6 +52,7 @@ async function doSingleWork(intendedUsage, servicePath, openapiFiles, authorizer
     await buildAWSOpenApiFile(mergedOpenApiFiles, outputFilePath, intendedUsage, authorizerConfig)
     await removeIntFormat(outputFilePath)
     await updateIntegerType(outputFilePath)
+    return outputFilePath
 }
 
 async function preProcessRemoteOpenapi(openapiFile, generateBundle, mergeBeforeBundleGeneration, remoteBundleFiles){
@@ -111,16 +113,16 @@ async function mergeBundles(bundleInputFiles, remoteBundleFiles){
 }
 
 async function main(){
-    fs.mkdirSync(tmpFolder, { recursive: true}) // create target folder if it doesn'\t exist
-
-    copyYamlFiles(openapiFolder, tmpFolder)
-
     const configContent = fs.readFileSync(configFilePath)
     const globalConfig = JSON.parse(configContent)
 
     const authorizerConfigContent = fs.readFileSync('src/config/authorizer.json')
     const authorizerConfig = JSON.parse(authorizerConfigContent)
     const config = globalConfig.openapi || [] // openapi codegen rules
+    const policyFiles = []
+    config.forEach(isPolicyGenerationEnabled)
+    fs.mkdirSync(tmpFolder, { recursive: true}) // create target folder if it doesn'\t exist
+    copyYamlFiles(openapiFolder, tmpFolder)
     const bundlePatch = globalConfig.bundlePatch
     for(let i=0; i<config.length; i++){
         const { intendedUsage, servicePath, openapiFiles, generateBundle, mergeBeforeBundleGeneration, skipAWSGeneration, bundlePathPrefixes, commonFiles, awsApiDiscriminator  } = config[i]
@@ -176,13 +178,25 @@ async function main(){
         }
 
         if(!skipAWSGeneration){
-            await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig, awsApiDiscriminator )
+            const awsFile = await doSingleWork(intendedUsage, servicePath, openExternalFiles, authorizerConfig, awsApiDiscriminator )
+            if (isPolicyGenerationEnabled(config[i])) {
+                if (!awsFile) {
+                    throw new Error(`Unable to generate policies for intendedUsage ${intendedUsage}`)
+                }
+                policyFiles.push(awsFile)
+            }
         }
     }
 
     // la patch viene applicata direttamente nella cartella docs/openapi al termine della copia di tutti i file
     if(bundlePatch){
         await applyPatch(openapiFolder, bundlePatch)
+    }
+
+    if (policyFiles.length > 0) {
+        generatePolicies(policyFiles, path.join(openapiFolder, 'policies/generated'))
+    } else if (config.some(rule => rule.generatePolicies === false)) {
+        removeObsoletePolicies(path.join(openapiFolder, 'policies/generated'))
     }
     
 
@@ -195,6 +209,14 @@ async function main(){
     }
 }
 
-main().then(function(){
-    console.log('done')
-})
+if (require.main === module) {
+    main().then(function(){
+        console.log('done')
+    }).catch(function(error){
+        const details = error instanceof Error ? error.stack || error.message : String(error)
+        console.error('Code generation failed:', details.replace(/\n|\r/g, ''))
+        process.exitCode = 1
+    })
+}
+
+module.exports = { main }
