@@ -49,7 +49,7 @@ test('metadata and untagged CORS are ignored; all HTTP methods and ANY are handl
     pathItem['x-amazon-apigateway-any-method'] = operation(['BS'])
     const policies = buildPolicies([{ paths: { '/v1/test': pathItem, '/v1/cors': { options: {} } } }])
     assert.deepEqual(resources(policies.PA), methods.map(method => `${prefix}/${method.toUpperCase()}/v1/test`).sort())
-    assert.deepEqual(resources(policies.BS), [`${prefix}/*/v1/test`])
+    assert.equal(policies.BS, undefined)
     assert.equal(policies.PF, undefined)
 })
 
@@ -142,6 +142,21 @@ test('invalid input terminates a Node process with a visible error and nonzero e
     assert.equal(result.status, 1)
     assert.match(result.stderr, /Unknown cx_type "UNKNOWN" on GET \/v1\/items/)
     assert.equal(fs.existsSync(output), false)
+})
+
+test('unsafe overlapping routes fail before changing previously generated policy files', t => {
+    const { file, output, write } = fixture(t)
+    write(['PA'])
+    generatePolicies([file], output)
+    const before = fs.readFileSync(path.join(output, 'paPolicy.json'), 'utf8')
+    fs.writeFileSync(file, JSON.stringify({ paths: {
+        '/a/{id}/c': { get: operation(['PA']) },
+        '/a/b/{name}': { get: operation(['PF']) },
+        '/a/b/{name}/private': { get: operation(['PA']) }
+    } }))
+    assert.throws(() => generatePolicies([file], output), /Cannot deny/)
+    assert.deepEqual(fs.readdirSync(output), ['paPolicy.json'])
+    assert.equal(fs.readFileSync(path.join(output, 'paPolicy.json'), 'utf8'), before)
 })
 
 test('explicit cleanup removes only generated policy files and preserves unrelated content', t => {

@@ -1,10 +1,12 @@
 const fs = require('fs')
 const path = require('path')
 const yaml = require('js-yaml')
+const { createPathCoverage, resourcePath } = require('./policyPathCoverage')
 
 const CX_TYPES_EXTENSION = 'x-pn-allowed-cx-types'
 const CX_TYPES = new Set(['PA', 'PG', 'PF', 'BS', 'PT'])
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'])
+const ANY_METHODS = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT']
 const RESOURCE_PREFIX = 'arn:aws:execute-api:{region}:{awsAccountId}:{restApiId}/{stage}'
 
 function isPolicyGenerationEnabled(config) {
@@ -59,26 +61,15 @@ function buildPolicies(openapiDocs) {
             }
         }
     }
-    const routeList = [...routes.values()]
+    const routeList = [...routes.values()].flatMap(route => route.method === '*' ?
+        ANY_METHODS.filter(method => !explicitMethodsByPath.get(route.apiPath).has(method))
+            .map(method => ({ ...route, method })) : [route])
+    const covers = createPathCoverage([...explicitMethodsByPath.keys()])
     const cxTypes = [...new Set(routeList.flatMap(route => [...route.allowedCxTypes]))].sort()
     return Object.fromEntries(cxTypes.map(cxType =>
-        [cxType, buildPolicy(cxType, routeList, explicitMethodsByPath)]))
+        [cxType, buildPolicy(cxType, routeList, covers)]))
 }
 
-// In una Resource IAM "*" corrisponde a qualunque sequenza di caratteri, "/" compreso
-const resourcePath = apiPath => apiPath.replace(/\{[^}]+\}/g, '*')
-const matchesResourcePath = (pattern, value) => new RegExp('^' +
-    pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(value)
-// Un path concreto servito dalla rotta: il valore del path param non coincide con nessun segmento
-// statico, perché API Gateway instrada quei path verso la rotta statica
-const concretePath = apiPath => apiPath.replace(/\{[^}]+\}/g, '\u0000')
-// La Resource di resourceRoute copre richieste servite da servedRoute? Una rotta ANY serve solo i metodi
-// che non hanno un'operazione esplicita sullo stesso path
-const covers = (resourceRoute, servedRoute, explicitMethodsByPath) =>
-    (resourceRoute.method === '*' || (servedRoute.method === '*' ?
-        !explicitMethodsByPath.get(servedRoute.apiPath).has(resourceRoute.method) :
-        resourceRoute.method === servedRoute.method)) &&
-    matchesResourcePath(resourcePath(resourceRoute.apiPath), concretePath(servedRoute.apiPath))
 const toResource = route => `${RESOURCE_PREFIX}/${route.method}${resourcePath(route.apiPath)}`
 const describe = route => `${route.method} ${route.apiPath}`
 
@@ -87,12 +78,12 @@ const describe = route => `${route.method} ${route.apiPath}`
  * GET /received/delegated): le rotte non consentite al cx_type ma coperte da una Resource consentita
  * vengono negate esplicitamente, perché in IAM il Deny prevale sull'Allow.
  */
-function buildPolicy(cxType, routes, explicitMethodsByPath) {
+function buildPolicy(cxType, routes, covers) {
     const allowed = routes.filter(route => route.allowedCxTypes.has(cxType))
     const denied = routes.filter(route => !route.allowedCxTypes.has(cxType) &&
-        allowed.some(allowedRoute => covers(allowedRoute, route, explicitMethodsByPath)))
+        allowed.some(allowedRoute => covers(allowedRoute, route)))
     for (const deniedRoute of denied) {
-        const blocked = allowed.find(allowedRoute => covers(deniedRoute, allowedRoute, explicitMethodsByPath))
+        const blocked = allowed.find(allowedRoute => covers(deniedRoute, allowedRoute))
         if (blocked) {
             throw new Error(`Cannot deny ${describe(deniedRoute)} to cx_type ${cxType} ` +
                 `without also denying ${describe(blocked)}`)
